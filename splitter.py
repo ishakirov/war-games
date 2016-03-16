@@ -1,5 +1,4 @@
-##!/opt/local/bin/python3.4
-##!/usr/bin/python -O
+#!/usr/bin/env python3
 
 # -*- coding: iso-8859-15 -*-
 
@@ -19,9 +18,10 @@ import socket
 import threading
 import struct
 
-from core.common import Common
-from core._print_ import _print_
-from core.color import Color
+#from core.common import Common
+from _print_ import _print_
+from color import Color
+sys.path.append('lib/p2psp/bin/')
 import libp2psp
 
 try:

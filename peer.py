@@ -1,5 +1,4 @@
-##!/opt/local/bin/python3.4
-##!/usr/bin/python -O
+#!/usr/bin/env python3
 
 # -*- coding: iso-8859-15 -*-
 
@@ -30,9 +29,9 @@ try:
 except ImportError:
     pass
 
-from core.common import Common
-from core.color import Color
-from core._print_ import _print_
+from color import Color
+from _print_ import _print_
+sys.path.append('lib/p2psp/bin/')
 import libp2psp
 
 #from core.peer_ims import Peer_IMS
