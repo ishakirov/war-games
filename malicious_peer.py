@@ -19,7 +19,7 @@ from color import Color
 from _print_ import _print_
 
 sys.path.append('lib/p2psp/bin/')
-import libp2psp
+from libp2psp import PeerDBS
 
 def _p_(*args, **kwargs):
     """Colorize the output."""
@@ -27,7 +27,7 @@ def _p_(*args, **kwargs):
     _print_("DBS (malicious):", *args)
     sys.stdout.write(Color.none)
 
-class MaliciousPeer(libp2psp.PeerDBS):
+class MaliciousPeer(PeerDBS):
 
     persistentAttack = False
     onOffAttack = False

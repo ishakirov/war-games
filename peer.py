@@ -32,7 +32,8 @@ except ImportError:
 from color import Color
 from _print_ import _print_
 sys.path.append('lib/p2psp/bin/')
-import libp2psp
+from libp2psp import PeerDBS
+from  malicious_peer import MaliciousPeer
 
 # }}}
 
@@ -57,10 +58,10 @@ class Peer():
 
         # {{{ Args handling and object instantiation
 
-        peer = libp2psp.PeerDBS()
-        
+        peer = MaliciousPeer(PeerDBS())
+        print("ADDR_SPLITTER: "+peer.splitter_addr)
         parser = argparse.ArgumentParser(description='This is the peer node of a P2PSP team.')
-
+        
         parser.add_argument('--enable_chunk_loss', help='Forces a lost of chunks')
         parser.add_argument('--max_chunk_debt', help='The maximun number of times that other peer can not send a chunk to this peer. Defaut = {}'.format(peer.max_chunk_debt))
         parser.add_argument('--player_port', help='Port to communicate with the player. Default = {}'.format(peer.player_port))
