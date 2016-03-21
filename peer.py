@@ -59,7 +59,7 @@ class Peer():
         # {{{ Args handling and object instantiation
 
         peer = MaliciousPeer(PeerDBS())
-        print("ADDR_SPLITTER: "+peer.splitter_addr)
+
         parser = argparse.ArgumentParser(description='This is the peer node of a P2PSP team.')
         
         parser.add_argument('--enable_chunk_loss', help='Forces a lost of chunks')
