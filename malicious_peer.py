@@ -37,7 +37,7 @@ class MaliciousPeer(PeerDBS):
 
     def __init__(self, peer):
         # {{{
-
+        PeerDBS.__init__(self)
         _p_("Initialized")
         
         # }}}

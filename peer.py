@@ -150,7 +150,7 @@ class Peer():
             else:
                 _print_("Peer DBS enabled")
                 # The peer is a normal peer. Let's know the sets of rules that control this team.
-               
+
             '''
            
             if args.strpeds:
