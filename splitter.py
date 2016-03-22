@@ -96,7 +96,7 @@ class Splitter():
 
         _print_("My IP address is =", socket.gethostbyname(socket.gethostname()))
         
-
+        splitter.monitor_number = 1
         if args.buffer_size:
             splitter.buffer_size = int(args.buffer_size)
         _print_("Buffer size =", str(splitter.buffer_size))

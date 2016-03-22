@@ -55,11 +55,8 @@ class Peer():
             print("debug mode")
         else:
             print("release mode")
-
-        # {{{ Args handling and object instantiation
-
-        peer = MaliciousPeer(PeerDBS())
-
+            
+        peer = PeerDBS() #remove!!!
         parser = argparse.ArgumentParser(description='This is the peer node of a P2PSP team.')
         
         parser.add_argument('--enable_chunk_loss', help='Forces a lost of chunks')
@@ -88,6 +85,12 @@ class Peer():
 
         args = parser.parse_args()
 
+         # {{{ Args handling and object instantiation
+        if args.malicious:
+            peer = MaliciousPeer(PeerDBS())
+        else:
+            peer = PeerDBS() #change for strpeds
+            
         if args.splitter_addr:
             peer.splitter_addr = socket.gethostbyname(args.splitter_addr)
         _print_('Splitter address =',  peer.splitter_addr)
