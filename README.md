@@ -27,4 +27,4 @@ TO-DO (working on a script for the simulation)
 ## Entities
 ### Splitter
 ### Well-intended peer
-### Malicious_peer.py
+### Malicious peer
