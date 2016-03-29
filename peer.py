@@ -33,6 +33,7 @@ from color import Color
 from _print_ import _print_
 sys.path.append('lib/p2psp/bin/')
 from libp2psp import PeerDBS
+from libp2psp import MonitorDBS
 from  malicious_peer import MaliciousPeer
 
 # }}}
@@ -77,7 +78,7 @@ class Peer():
         parser.add_argument('--strpeds', action="store_true", help='Enables STrPe-DS')
         parser.add_argument('--strpe_log', help='Logging STrPe & STrPe-DS specific data to file.')
         parser.add_argument('--show_buffer', action="store_true", help='Shows the status of the buffer of chunks.')
-
+        parser.add_argument('--monitor', action="store_true", help='Enables monitor')
         try:
             argcomplete.autocomplete(parser)
         except Exception:
@@ -90,6 +91,9 @@ class Peer():
             peer = MaliciousPeer(PeerDBS())
         else:
             peer = PeerDBS() #change for strpeds
+
+        if args.monitor:
+            peer = MonitorDBS()
             
         if args.splitter_addr:
             peer.splitter_addr = socket.gethostbyname(args.splitter_addr)
