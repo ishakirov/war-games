@@ -32,8 +32,7 @@ except ImportError:
 from color import Color
 from _print_ import _print_
 sys.path.append('lib/p2psp/bin/')
-from libp2psp import PeerDBS
-from libp2psp import MonitorDBS
+from libp2psp import PeerDBS, MonitorDBS
 from  malicious_peer import MaliciousPeer
 
 # }}}
