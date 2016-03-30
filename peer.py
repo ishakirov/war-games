@@ -89,6 +89,7 @@ class Peer():
          # {{{ Args handling and object instantiation
         if args.malicious:
             peer = MaliciousPeer(PeerDBS())
+            peer.setPersistentAttack(True)
         else:
             peer = PeerDBS() #change for strpeds
 

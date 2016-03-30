@@ -39,12 +39,12 @@ class MaliciousPeer(PeerDBS):
         # {{{
         PeerDBS.__init__(self)
         _p_("Initialized")
-        
         # }}}
-
-    def process_message(self, message, sender):
+        
+    def ProcessMessage(self, message, sender):
         # {{{ Now, receive and send.
-
+        print (Color.red, "PROCESS MESSAGE", Color.none)
+        '''
         if len(message) == struct.calcsize(self.message_format):
             # {{{ A video chunk has been received
 
@@ -163,7 +163,7 @@ class MaliciousPeer(PeerDBS):
                     self.peer_list.remove(sender)
                     del self.debt[sender]
             return -1
-
+        '''
             # }}}
 
         # }}}
@@ -172,6 +172,7 @@ class MaliciousPeer(PeerDBS):
         if self.persistentAttack:
             self.team_socket.sendto(self.get_poisoned_chunk(self.receive_and_feed_previous), peer)
             self.sendto_counter += 1
+            print (Color.red, "Persistent Attack", Color.none)
             return
 
         if self.onOffAttack:
@@ -193,6 +194,7 @@ class MaliciousPeer(PeerDBS):
             self.sendto_counter += 1
             return
 
+        print (Color.red, "SENDING....", Color.none)
         self.team_socket.sendto(self.receive_and_feed_previous, peer)
         self.sendto_counter += 1
 
