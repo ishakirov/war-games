@@ -43,7 +43,8 @@ class MaliciousPeer(PeerDBS):
         
     def ProcessMessage(self, message, sender):
         # {{{ Now, receive and send.
-        print (Color.red, "PROCESS MESSAGE", Color.none)
+        print (Color.red, "PROCESS MESSAGE Malicious python", Color.none)
+        return -1;
         '''
         if len(message) == struct.calcsize(self.message_format):
             # {{{ A video chunk has been received
