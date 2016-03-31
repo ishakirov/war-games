@@ -89,11 +89,10 @@ class Peer():
         if args.malicious:
             peer = MaliciousPeer(PeerDBS())
             peer.setPersistentAttack(True)
+        elif args.monitor:
+            peer = MonitorDBS()
         else:
             peer = PeerDBS() #change for strpeds
-
-        if args.monitor:
-            peer = MonitorDBS()
             
         if args.splitter_addr:
             peer.splitter_addr = socket.gethostbyname(args.splitter_addr)
