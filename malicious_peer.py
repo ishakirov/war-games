@@ -44,10 +44,7 @@ class MaliciousPeer(PeerDBS):
     def ProcessMessage(self, message, sender):
         # {{{ Now, receive and send.
         print (Color.red, "PROCESS MESSAGE Malicious python", Color.none)
-        chunk="009191292"
-        self.SendChunk(chunk, sender)
-        return -1;
-        '''
+        
         if len(message) == struct.calcsize(self.message_format):
             # {{{ A video chunk has been received
 
@@ -166,7 +163,7 @@ class MaliciousPeer(PeerDBS):
                     self.peer_list.remove(sender)
                     del self.debt[sender]
             return -1
-        '''
+        
             # }}}
 
         # }}}
