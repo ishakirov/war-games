@@ -14,6 +14,7 @@ import socket
 import sys
 import threading
 import random
+import array
 
 from color import Color
 from _print_ import _print_
@@ -41,28 +42,38 @@ class MaliciousPeer(PeerDBS):
         _p_("Initialized")
         # }}}
         
-    def ProcessMessage(self, message, sender):
+    def ProcessMessage(self, msg, sender):
+        print ("tipo antes: ", type(msg))
         # {{{ Now, receive and send.
+        #message[5]
+        #message = bytearray(message, 'utf-8')
+        message = array.array('B', msg).tostring()
+        print ("longitud: ", len(message))
         print (Color.red, "PROCESS MESSAGE Malicious python", Color.none)
-        message=message.encode('UTF-8')
+        chunk_number, chunk = struct.unpack("H1024s", message)
+        print ("Chunk: ",chunk_number, len(message))
         if len(message) == self.message_size:
             # {{{ A video chunk has been received
-            print("chunk_number", struct.unpack("H", message)[0])
-            chunk_number, chunk = self.unpack_message(message)
-            self.chunks[chunk_number % self.buffer_size] = chunk
-            self.received_flag[chunk_number % self.buffer_size] = True
+            
+            chunk_number, chunk = struct.unpack("H1024s", message)
+            #self.chunks[chunk_number % self.buffer_size] = chunk
+            print (type(chunk_number % self.buffer_size), type(msg))
+            self.InsertChunk(chunk_number % self.buffer_size, msg)
+            #self.received_flag[chunk_number % self.buffer_size] = True
+            #It's not necessary because InsertChunk does it.
             self.received_counter += 1
 
-            if sender == self.splitter:
+            #maybe get the splitter tuple as a property would be useful
+            if sender == (self.splitter_addr,self.splitter_port):
                 # {{{ Send the previous chunk in burst sending
                 # mode if the chunk has not been sent to all
                 # the peers of the list of peers.
 
                 # {{{ debug
 
-                if __debug__:
-                    _print_("DBS:", self.team_socket.getsockname(), \
-                        Color.red, "<-", Color.none, chunk_number, "-", sender)
+                #if __debug__:
+                   # _print_("DBS:", self.team_socket.getsockname(), \
+                     #   Color.red, "<-", Color.none, chunk_number, "-", sender)
 
                 # }}}
 

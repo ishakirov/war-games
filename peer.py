@@ -92,7 +92,8 @@ class Peer():
         elif args.monitor:
             peer = MonitorDBS()
         else:
-            peer = PeerDBS() #change for strpeds
+            print("nothin")
+            #peer = PeerDBS() #change for strpeds
             
         if args.splitter_addr:
             peer.splitter_addr = socket.gethostbyname(args.splitter_addr)
