@@ -59,9 +59,12 @@ class Peer():
         peer.sendto_counter = 0
         last_sendto_counter = 0
         last_recvfrom_counter = peer.recvfrom_counter
+        f = open("funciona.txt", "w")
         
         while peer.IsPlayerAlive():
             #os.system('play --no-show-progress --null --channels 1 synth %s sine %f' % ( a, b))
+            f.write("a\n")
+            f.flush()
             time.sleep(1)
             kbps_expected_recv = ((peer.GetPlayedChunk() - last_chunk_number) * peer.chunk_size * 8) / 1000
             last_chunk_number = peer.GetPlayedChunk()
@@ -275,20 +278,14 @@ class Peer():
     
         peer.DisconnectFromTheSplitter()
         peer.BufferData()
-        threading.Thread(target=self.console, args=(peer,)).start()
-        time.sleep(10)
-        peer.Run()
-        #threading.Thread(target=peer.Run, args=()).start()
-        #t1.start()
-        #t1.join()
-        #bucle = Bucle()
-        #threading.Thread(target=bucle.run, args=()).start()
-        
-        #peer.Start()
+        #threading.Thread(target=self.console, args=(peer,)).start()
+        #peer.Run()
+        threading.Thread(target=peer.Run, args=()).start() #it doesn't work properly. It would be running in a different Thread.
+        self.console(peer)
 
-    
-
-        
+                
         
 if __name__ == "__main__":
     x = Peer()
+
+    
