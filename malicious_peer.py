@@ -47,7 +47,7 @@ class MaliciousPeer(PeerDBS):
         # {{{ Now, receive and send.
         #message[5]
         #message = bytearray(message, 'utf-8')
-        message = array.array('B', msg).tostring()
+        message = msg
         print ("longitud: ", len(message))
         print (Color.red, "PROCESS MESSAGE Malicious python", Color.none)
         chunk_number, chunk = struct.unpack("H1024s", message)
