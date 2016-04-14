@@ -42,23 +42,18 @@ class MaliciousPeer(PeerDBS):
         _p_("Initialized")
         # }}}
         
-    def ProcessMessage(self, msg, sender):
-        #print ("tipo antes: ", type(msg))
+    def ProcessMessage(self, message, sender):
         # {{{ Now, receive and send.
-        #message[5]
-        #message = bytearray(message, 'utf-8')
-        message = msg
-        print ("longitud: ", len(message))
+        
         print (Color.red, "PROCESS MESSAGE Malicious python", Color.none)
-        chunk_number, chunk = struct.unpack("H1024s", message)
-        print ("Chunk: ",chunk_number, len(message))
+
         if len(message) == self.message_size:
             # {{{ A video chunk has been received
             
             chunk_number, chunk = struct.unpack("H1024s", message)
+            chunk_number = socket.ntohs(chunk_number)
             #self.chunks[chunk_number % self.buffer_size] = chunk
-            #print (type(chunk_number % self.buffer_size), type(msg))
-            self.InsertChunk(chunk_number % self.buffer_size, msg)
+            self.InsertChunk(chunk_number%self.buffer_size, chunk)
             #self.received_flag[chunk_number % self.buffer_size] = True
             #It's not necessary because InsertChunk does it.
             self.received_counter += 1
@@ -71,6 +66,8 @@ class MaliciousPeer(PeerDBS):
 
                 # {{{ debug
 
+                print (Color.red, "Me <-", chunk_number, "-", str(sender))
+                
                 #if __debug__:
                    # _print_("DBS:", self.team_socket.getsockname(), \
                      #   Color.red, "<-", Color.none, chunk_number, "-", sender)
@@ -102,7 +99,7 @@ class MaliciousPeer(PeerDBS):
                     self.receive_and_feed_counter += 1
 
                 self.receive_and_feed_counter = 0
-                self.receive_and_feed_previous = msg #message
+                self.receive_and_feed_previous = message
 
                # }}}
             else:
@@ -185,13 +182,14 @@ class MaliciousPeer(PeerDBS):
         # }}}
 
     def send_chunk(self, peer):
-        '''
+        
         if self.persistentAttack:
-            self.team_socket.sendto(self.get_poisoned_chunk(self.receive_and_feed_previous), peer)
+            #self.team_socket.sendto(self.get_poisoned_chunk(self.receive_and_feed_previous), peer)
+            self.SendChunk(bytes(self.get_poisoned_chunk(self.receive_and_feed_previous)), peer)
             self.sendto_counter += 1
             print (Color.red, "Persistent Attack", Color.none)
             return
-
+        '''
         if self.onOffAttack:
             r = random.randint(1, 100)
             if r <= self.onOffRatio:
@@ -213,12 +211,12 @@ class MaliciousPeer(PeerDBS):
         '''
         print (Color.red, "SENDING....", Color.none)
         #self.team_socket.sendto(self.receive_and_feed_previous, peer)
-        self.SendChunk(self.receive_and_feed_previous, peer)
+        self.SendChunk(bytes(self.receive_and_feed_previous), peer)
         self.sendto_counter += 1
 
     def get_poisoned_chunk(self, chunk):
-        chunk_number, chunk = struct.unpack(self.message_format, chunk)
-        return struct.pack(self.message_format, chunk_number, '0')
+        chunk_number, chunk = struct.unpack("H1024s", chunk)
+        return struct.pack("H1024s", socket.ntohs(chunk_number), bytes(("fake").encode('utf-8')))
 
     def setPersistentAttack(self, value):
         self.persistentAttack = value
