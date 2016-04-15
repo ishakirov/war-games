@@ -134,7 +134,7 @@ class Peer():
         parser.add_argument('--port_step', help='Source port step forced when behind a sequentially port allocating NAT (conflicts with --chunk_loss_period). Default = {}')#.format(Symsp_Peer.PORT_STEP))
         parser.add_argument('--splitter_addr', help='IP address or hostname of the splitter. Default = {}.'.format(peer.splitter_addr))
         parser.add_argument('--splitter_port', help='Listening port of the splitter. Default = {}.'.format(peer.splitter_port))
-        parser.add_argument('--port', help='Port to communicate with the peers. Default {} (the OS will chose it).'.format(peer.port))
+        parser.add_argument('--port', help='Port to communicate with the peers. Default {} (the OS will chose it).'.format(peer.team_port))
         parser.add_argument('--use_localhost', action="store_true", help='Forces the peer to use localhost instead of the IP of the adapter to connect to the splitter. Notice that in this case, peers that run outside of the host will not be able to communicate with this peer.')
         parser.add_argument('--malicious', action="store_true", help='Enables the malicious activity for peer.')
         parser.add_argument('--persistent', action="store_true", help='Forces the peer to send poisoned chunks to other peers.')
@@ -157,7 +157,8 @@ class Peer():
          # {{{ Args handling and object instantiation
         if args.malicious:
             peer = MaliciousPeer(PeerDBS())
-            peer.setPersistentAttack(True)
+            if args.persistent:
+                peer.setPersistentAttack(True)
         elif args.monitor:
             peer = MonitorDBS()
         else:
@@ -173,8 +174,8 @@ class Peer():
         _print_('Splitter port =', peer.splitter_port)
 
         if args.port:
-            peer.port = int(args.port)
-        _print_('(Peer) PORT =', peer.port)
+            peer.team_port = int(args.port)
+        _print_('(Peer) PORT =', peer.team_port)
 
         if args.player_port:
             peer.player_port = int(args.player_port)
@@ -190,7 +191,7 @@ class Peer():
 
         peer.WaitForThePlayer()
         peer.ConnectToTheSplitter()
-        peer.ReceiveTheMcasteEndpoint()
+        peer.ReceiveTheMcastEndpoint()
         peer.ReceiveTheHeaderSize()
         peer.ReceiveTheChunkSize()
         peer.ReceiveTheHeader()
