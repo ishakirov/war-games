@@ -17,7 +17,7 @@ import socket
 import struct
 import time
 import threading
-
+import os
 import argparse
 try:
     import argcomplete                    # Bash tab completion for argparse in Unixes
@@ -32,7 +32,8 @@ except ImportError:
 from color import Color
 from _print_ import _print_
 sys.path.append('lib/p2psp/bin/')
-import libp2psp
+from libp2psp import PeerDBS, MonitorDBS
+from  malicious_peer import MaliciousPeer
 
 # }}}
 
@@ -41,9 +42,78 @@ ADDR = 0
 PORT = 1
 
 class Peer():
+    
+    def console(self, peer):
+        
+        print("+-----------------------------------------------------+")
+        print("| Received = Received kbps, including retransmissions |")
+        print("|     Sent = Sent kbps                                |")
+        print("|       (Expected values are between parenthesis)     |")
+        print("------------------------------------------------------+")
+        print()
+        print("         |     Received (kbps) |          Sent (kbps) |")
+        print("    Time |      Real  Expected |       Real  Expected | Team description")
+        print("---------+---------------------+----------------------+-----------------------------------...")
 
+        last_chunk_number = peer.GetPlayedChunk()
+        peer.sendto_counter = 0
+        last_sendto_counter = 0
+        last_recvfrom_counter = peer.recvfrom_counter
+        f = open("funciona.txt", "w")
+        
+        while peer.IsPlayerAlive():
+            #os.system('play --no-show-progress --null --channels 1 synth %s sine %f' % ( a, b))
+            f.write("a\n")
+            f.flush()
+            time.sleep(1)
+            kbps_expected_recv = ((peer.GetPlayedChunk() - last_chunk_number) * peer.chunk_size * 8) / 1000
+            last_chunk_number = peer.GetPlayedChunk()
+            kbps_recvfrom = ((peer.recvfrom_counter - last_recvfrom_counter) * peer.chunk_size * 8) / 1000
+            last_recvfrom_counter = peer.recvfrom_counter
+            team_ratio = len(peer.GetPeerList()) /(len(peer.GetPeerList()) + 1.0)
+            kbps_expected_sent = int(kbps_expected_recv*team_ratio)
+            kbps_sendto = ((peer.sendto_counter - last_sendto_counter) * peer.chunk_size * 8) / 1000
+            last_sendto_counter = peer.sendto_counter
+            
+            if kbps_recvfrom > 0 and kbps_expected_recv > 0:
+                nice = 100.0/float((float(kbps_expected_recv)/kbps_recvfrom)*(len(peer.GetPeerList())+1))
+            else:
+                nice = 0.0
+            _print_('|', end=Color.none)
+            if kbps_expected_recv < kbps_recvfrom:
+                sys.stdout.write(Color.red)
+            elif kbps_expected_recv > kbps_recvfrom:
+                sys.stdout.write(Color.green)
+            print(repr(int(kbps_expected_recv)).rjust(10), end=Color.none)
+            print(repr(int(kbps_recvfrom)).rjust(10), end=' | ')
+            #print(("{:.1f}".format(nice)).rjust(6), end=' | ')
+            #sys.stdout.write(Color.none)
+            if kbps_expected_sent > kbps_sendto:
+                sys.stdout.write(Color.red)
+            elif kbps_expected_sent < kbps_sendto:
+                sys.stdout.write(Color.green)
+            print(repr(int(kbps_sendto)).rjust(10), end=Color.none)
+            print(repr(int(kbps_expected_sent)).rjust(10), end=' | ')
+            #sys.stdout.write(Color.none)
+            #print(repr(nice).ljust(1)[:6], end=' ')
+            print(len(peer.GetPeerList()), end=' ')
+            counter = 0
+            for p in peer.GetPeerList():
+                if (counter < 5):
+                    print(p, end=' ')
+                    counter += 1
+                else:
+                    break
+            print()
+        try:
+            if Common.CONSOLE_MODE == False :
+                GObject.idle_add(speed_adapter.update_widget,str(0)+' kbps',str(0)+' kbps',str(0))
+        except  Exception as msg:
+            pass
+            # }}}
+    
     def __init__(self):
-
+        
         try:
             colorama.init()
         except Exception:
@@ -54,20 +124,17 @@ class Peer():
             print("debug mode")
         else:
             print("release mode")
-
-        # {{{ Args handling and object instantiation
-
-        peer = libp2psp.PeerDBS()
-        
+            
+        peer = PeerDBS() #remove!!!
         parser = argparse.ArgumentParser(description='This is the peer node of a P2PSP team.')
-
+        
         parser.add_argument('--enable_chunk_loss', help='Forces a lost of chunks')
         parser.add_argument('--max_chunk_debt', help='The maximun number of times that other peer can not send a chunk to this peer. Defaut = {}'.format(peer.max_chunk_debt))
         parser.add_argument('--player_port', help='Port to communicate with the player. Default = {}'.format(peer.player_port))
         parser.add_argument('--port_step', help='Source port step forced when behind a sequentially port allocating NAT (conflicts with --chunk_loss_period). Default = {}')#.format(Symsp_Peer.PORT_STEP))
         parser.add_argument('--splitter_addr', help='IP address or hostname of the splitter. Default = {}.'.format(peer.splitter_addr))
         parser.add_argument('--splitter_port', help='Listening port of the splitter. Default = {}.'.format(peer.splitter_port))
-        parser.add_argument('--port', help='Port to communicate with the peers. Default {} (the OS will chose it).'.format(peer.port))
+        parser.add_argument('--port', help='Port to communicate with the peers. Default {} (the OS will chose it).'.format(peer.team_port))
         parser.add_argument('--use_localhost', action="store_true", help='Forces the peer to use localhost instead of the IP of the adapter to connect to the splitter. Notice that in this case, peers that run outside of the host will not be able to communicate with this peer.')
         parser.add_argument('--malicious', action="store_true", help='Enables the malicious activity for peer.')
         parser.add_argument('--persistent', action="store_true", help='Forces the peer to send poisoned chunks to other peers.')
@@ -79,7 +146,7 @@ class Peer():
         parser.add_argument('--strpeds', action="store_true", help='Enables STrPe-DS')
         parser.add_argument('--strpe_log', help='Logging STrPe & STrPe-DS specific data to file.')
         parser.add_argument('--show_buffer', action="store_true", help='Shows the status of the buffer of chunks.')
-
+        parser.add_argument('--monitor', action="store_true", help='Enables monitor')
         try:
             argcomplete.autocomplete(parser)
         except Exception:
@@ -87,6 +154,17 @@ class Peer():
 
         args = parser.parse_args()
 
+         # {{{ Args handling and object instantiation
+        if args.malicious:
+            peer = MaliciousPeer(PeerDBS())
+            if args.persistent:
+                peer.setPersistentAttack(True)
+        elif args.monitor:
+            peer = MonitorDBS()
+        else:
+            print("nothin")
+            #peer = PeerDBS() #change for strpeds
+            
         if args.splitter_addr:
             peer.splitter_addr = socket.gethostbyname(args.splitter_addr)
         _print_('Splitter address =',  peer.splitter_addr)
@@ -96,8 +174,8 @@ class Peer():
         _print_('Splitter port =', peer.splitter_port)
 
         if args.port:
-            peer.port = int(args.port)
-        _print_('(Peer) PORT =', peer.port)
+            peer.team_port = int(args.port)
+        _print_('(Peer) PORT =', peer.team_port)
 
         if args.player_port:
             peer.player_port = int(args.player_port)
@@ -113,7 +191,7 @@ class Peer():
 
         peer.WaitForThePlayer()
         peer.ConnectToTheSplitter()
-        peer.ReceiveTheMcasteEndpoint()
+        peer.ReceiveTheMcastEndpoint()
         peer.ReceiveTheHeaderSize()
         peer.ReceiveTheChunkSize()
         peer.ReceiveTheHeader()
@@ -149,7 +227,7 @@ class Peer():
             else:
                 _print_("Peer DBS enabled")
                 # The peer is a normal peer. Let's know the sets of rules that control this team.
-               
+
             '''
            
             if args.strpeds:
@@ -201,70 +279,14 @@ class Peer():
     
         peer.DisconnectFromTheSplitter()
         peer.BufferData()
-        peer.Start()
+        #threading.Thread(target=self.console, args=(peer,)).start()
+        #peer.Run()
+        threading.Thread(target=peer.Run, args=()).start() #it doesn't work properly. It would be running in a different Thread.
+        self.console(peer)
 
-        print("+-----------------------------------------------------+")
-        print("| Received = Received kbps, including retransmissions |")
-        print("|     Sent = Sent kbps                                |")
-        print("|       (Expected values are between parenthesis)     |")
-        print("------------------------------------------------------+")
-        print()
-        print("         |     Received (kbps) |          Sent (kbps) |")
-        print("    Time |      Real  Expected |       Real  Expected | Team description")
-        print("---------+---------------------+----------------------+-----------------------------------...")
-
-        last_chunk_number = peer.GetPlayedChunk()
-        peer.sendto_counter = 0
-        last_sendto_counter = 0
-        last_recvfrom_counter = peer.recvfrom_counter
+                
         
-        while peer.IsPlayerAlive():
-            time.sleep(1)
-            kbps_expected_recv = ((peer.GetPlayedChunk() - last_chunk_number) * peer.chunk_size * 8) / 1000
-            last_chunk_number = peer.GetPlayedChunk()
-            kbps_recvfrom = ((peer.recvfrom_counter - last_recvfrom_counter) * peer.chunk_size * 8) / 1000
-            last_recvfrom_counter = peer.recvfrom_counter
-            team_ratio = len(peer.GetPeerList()) /(len(peer.GetPeerList()) + 1.0)
-            kbps_expected_sent = int(kbps_expected_recv*team_ratio)
-            kbps_sendto = ((peer.sendto_counter - last_sendto_counter) * peer.chunk_size * 8) / 1000
-            last_sendto_counter = peer.sendto_counter
-            
-            if kbps_recvfrom > 0 and kbps_expected_recv > 0:
-                nice = 100.0/float((float(kbps_expected_recv)/kbps_recvfrom)*(len(peer.GetPeerList())+1))
-            else:
-                nice = 0.0
-            _print_('|', end=Color.none)
-            if kbps_expected_recv < kbps_recvfrom:
-                sys.stdout.write(Color.red)
-            elif kbps_expected_recv > kbps_recvfrom:
-                sys.stdout.write(Color.green)
-            print(repr(int(kbps_expected_recv)).rjust(10), end=Color.none)
-            print(repr(int(kbps_recvfrom)).rjust(10), end=' | ')
-            #print(("{:.1f}".format(nice)).rjust(6), end=' | ')
-            #sys.stdout.write(Color.none)
-            if kbps_expected_sent > kbps_sendto:
-                sys.stdout.write(Color.red)
-            elif kbps_expected_sent < kbps_sendto:
-                sys.stdout.write(Color.green)
-            print(repr(int(kbps_sendto)).rjust(10), end=Color.none)
-            print(repr(int(kbps_expected_sent)).rjust(10), end=' | ')
-            #sys.stdout.write(Color.none)
-            #print(repr(nice).ljust(1)[:6], end=' ')
-            print(len(peer.GetPeerList()), end=' ')
-            counter = 0
-            for p in peer.GetPeerList():
-                if (counter < 5):
-                    print(p, end=' ')
-                    counter += 1
-                else:
-                    break
-            print()
-        try:
-            if Common.CONSOLE_MODE == False :
-                GObject.idle_add(speed_adapter.update_widget,str(0)+' kbps',str(0)+' kbps',str(0))
-        except  Exception as msg:
-            pass
-            # }}}
-
 if __name__ == "__main__":
     x = Peer()
+
+    

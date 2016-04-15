@@ -96,7 +96,7 @@ class Splitter():
 
         _print_("My IP address is =", socket.gethostbyname(socket.gethostname()))
         
-
+        splitter.monitor_number = 1
         if args.buffer_size:
             splitter.buffer_size = int(args.buffer_size)
         _print_("Buffer size =", str(splitter.buffer_size))
@@ -114,8 +114,8 @@ class Splitter():
         _print_("Header size =", str(splitter.header_size))
 
         if args.port:
-            splitter.port = int(args.port)
-        _print_("Listening port =", str(splitter.port))
+            splitter.team_port = int(args.port)
+        _print_("Listening port =", str(splitter.team_port))
 
         if args.source_addr:
             splitter.source_addr = socket.gethostbyname(args.source_addr)
@@ -129,12 +129,12 @@ class Splitter():
         _print_("IP unicast mode selected")
 
         if args.max_chunk_loss:
-            splitter.max_chunk_loss = int(args.max_chunk_loss)
-            _print_("Maximun chunk loss =", str(splitter.max_chunk_loss))
+            splitter.max_number_of_chunk_loss = int(args.max_chunk_loss)
+            _print_("Maximun chunk loss =", str(splitter.max_number_of_chunk_loss))
 
         if args.max_number_of_monitor_peers:
-           splitter.monitor_number = int(args.max_number_of_monitor_peers)
-           _print_("Maximun number of monitor peers =", str(splitter.monitor_number))
+           splitter.max_number_of_monitors = int(args.max_number_of_monitor_peers)
+           _print_("Maximun number of monitor peers =", str(splitter.max_number_of_monitors))
 
 
         # {{{ Run!
@@ -147,18 +147,18 @@ class Splitter():
         print("    Time | (kbps)    | (kbps)    | peers (peer) sents   threshold period kbps")
         print("---------+-----------+-----------+-----------------------------------...")
 
-        last_sendto_counter = splitter.sendto_counter
-        last_recvfrom_counter = splitter.recvfrom_counter
+        last_sendto_counter = splitter.GetSendToCounter()
+        last_recvfrom_counter = splitter.GetRecvFromCounter()
 
         while splitter.isAlive():
             try:
                 time.sleep(1)
-                chunks_sendto = splitter.sendto_counter - last_sendto_counter
+                chunks_sendto = splitter.GetSendToCounter() - last_sendto_counter
                 kbps_sendto = (chunks_sendto * splitter.chunk_size * 8) / 1000
-                chunks_recvfrom = splitter.recvfrom_counter - last_recvfrom_counter
+                chunks_recvfrom = splitter.GetRecvFromCounter() - last_recvfrom_counter
                 kbps_recvfrom = ( chunks_recvfrom * splitter.chunk_size * 8) / 1000
-                last_sendto_counter = splitter.sendto_counter
-                last_recvfrom_counter = splitter.recvfrom_counter
+                last_sendto_counter = splitter.GetSendToCounter()
+                last_recvfrom_counter = splitter.GetRecvFromCounter()
                 sys.stdout.write(Color.none)
                 _print_("|" + repr(int(kbps_recvfrom)).rjust(10) + " |" + repr(int(kbps_sendto)).rjust(10), end=" | ")
                 #print('%5d' % splitter.chunk_number, end=' ')
@@ -195,7 +195,7 @@ class Splitter():
                 # Wake up the "handle_arrivals" daemon, which is waiting
                 # in an accept().
                 sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                sock.connect(("127.0.0.1", splitter.GetPort()))
+                sock.connect(("127.0.0.1", splitter.team_port))
                 sock.recv(struct.calcsize("4sH")) # Multicast channel
                 sock.recv(struct.calcsize("H")) # Header size
                 sock.recv(struct.calcsize("H")) # Chunk size

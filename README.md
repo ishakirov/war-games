@@ -23,3 +23,8 @@ $ cd ../..
 ## Run it
 
 TO-DO (working on a script for the simulation)
+
+## Entities
+### Splitter
+### Well-intended peer
+### Malicious peer
