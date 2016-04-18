@@ -59,13 +59,8 @@ class Peer():
         peer.sendto_counter = 0
         last_sendto_counter = 0
         last_recvfrom_counter = peer.recvfrom_counter
-        f = open("funciona.txt", "w")
         
         while peer.IsPlayerAlive():
-            #os.system('play --no-show-progress --null --channels 1 synth %s sine %f' % ( a, b))
-            f.write("a\n")
-            f.flush()
-            time.sleep(1)
             kbps_expected_recv = ((peer.GetPlayedChunk() - last_chunk_number) * peer.chunk_size * 8) / 1000
             last_chunk_number = peer.GetPlayedChunk()
             kbps_recvfrom = ((peer.recvfrom_counter - last_recvfrom_counter) * peer.chunk_size * 8) / 1000
@@ -80,23 +75,24 @@ class Peer():
             else:
                 nice = 0.0
             _print_('|', end=Color.none)
+            
             if kbps_expected_recv < kbps_recvfrom:
                 sys.stdout.write(Color.red)
             elif kbps_expected_recv > kbps_recvfrom:
                 sys.stdout.write(Color.green)
+                
             print(repr(int(kbps_expected_recv)).rjust(10), end=Color.none)
             print(repr(int(kbps_recvfrom)).rjust(10), end=' | ')
-            #print(("{:.1f}".format(nice)).rjust(6), end=' | ')
-            #sys.stdout.write(Color.none)
+            
             if kbps_expected_sent > kbps_sendto:
                 sys.stdout.write(Color.red)
             elif kbps_expected_sent < kbps_sendto:
                 sys.stdout.write(Color.green)
+                
             print(repr(int(kbps_sendto)).rjust(10), end=Color.none)
             print(repr(int(kbps_expected_sent)).rjust(10), end=' | ')
-            #sys.stdout.write(Color.none)
-            #print(repr(nice).ljust(1)[:6], end=' ')
             print(len(peer.GetPeerList()), end=' ')
+            
             counter = 0
             for p in peer.GetPeerList():
                 if (counter < 5):
@@ -125,12 +121,12 @@ class Peer():
         else:
             print("release mode")
             
-        peer = PeerDBS() #remove!!!
+        peer = PeerDBS()
         parser = argparse.ArgumentParser(description='This is the peer node of a P2PSP team.')
         
         parser.add_argument('--enable_chunk_loss', help='Forces a lost of chunks')
         parser.add_argument('--max_chunk_debt', help='The maximun number of times that other peer can not send a chunk to this peer. Defaut = {}'.format(peer.max_chunk_debt))
-        parser.add_argument('--player_port', help='Port to communicate with the player. Default = {}'.format(peer.player_port))
+        parser.add_argument('--player_port', help='Port to communicate with the player. Default = {}'.format(PeerDBS.KPlayerPort))
         parser.add_argument('--port_step', help='Source port step forced when behind a sequentially port allocating NAT (conflicts with --chunk_loss_period). Default = {}')#.format(Symsp_Peer.PORT_STEP))
         parser.add_argument('--splitter_addr', help='IP address or hostname of the splitter. Default = {}.'.format(peer.splitter_addr))
         parser.add_argument('--splitter_port', help='Listening port of the splitter. Default = {}.'.format(peer.splitter_port))
