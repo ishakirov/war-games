@@ -126,7 +126,7 @@ class Peer():
         
         parser.add_argument('--enable_chunk_loss', help='Forces a lost of chunks')
         parser.add_argument('--max_chunk_debt', help='The maximun number of times that other peer can not send a chunk to this peer. Defaut = {}'.format(peer.max_chunk_debt))
-        parser.add_argument('--player_port', help='Port to communicate with the player. Default = {}'.format(PeerDBS.KPlayerPort))
+        parser.add_argument('--player_port', help='Port to communicate with the player. Default = {}'.format(peer.player_port))
         parser.add_argument('--port_step', help='Source port step forced when behind a sequentially port allocating NAT (conflicts with --chunk_loss_period). Default = {}')#.format(Symsp_Peer.PORT_STEP))
         parser.add_argument('--splitter_addr', help='IP address or hostname of the splitter. Default = {}.'.format(peer.splitter_addr))
         parser.add_argument('--splitter_port', help='Listening port of the splitter. Default = {}.'.format(peer.splitter_port))

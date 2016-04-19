@@ -3,7 +3,7 @@
 common module
 """
 
-from core.color import Color
+from color import Color
 
 class Common:
 
