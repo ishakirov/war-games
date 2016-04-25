@@ -33,7 +33,8 @@ from color import Color
 from _print_ import _print_
 sys.path.append('lib/p2psp/bin/')
 from libp2psp import PeerDBS, MonitorDBS
-from  malicious_peer import MaliciousPeer
+from malicious_peer import MaliciousPeer
+from peer_strpeds import PeerSTRPEDS
 
 # }}}
 
@@ -158,8 +159,9 @@ class Peer():
         elif args.monitor:
             peer = MonitorDBS()
         else:
-            print("nothin")
+            print("nothing")
             #peer = PeerDBS() #change for strpeds
+            peer = PeerSTRPEDS(PeerDBS())
             
         if args.splitter_addr:
             peer.splitter_addr = socket.gethostbyname(args.splitter_addr)
@@ -211,7 +213,8 @@ class Peer():
             peer.ListenToTheTeam()
             peer.ReceiveTheListOfPeers()
             _print_("List of peers received")
-
+            
+            
             # After receiving the list of peers, the peer can check
             # whether is a monitor peer or not (only the first
             # arriving peers are monitors)
@@ -229,7 +232,7 @@ class Peer():
             if args.strpeds:
                 peer = Peer_StrpeDs(peer)
                 peer.receive_dsa_key()
-
+            
             if args.malicious and not args.strpeds: # workaround for malicous strpeds peer
                 peer = MaliciousPeer(peer)
                 if args.persistent:
@@ -259,6 +262,10 @@ class Peer():
                 peer.LOGGING = True
                 peer.LOG_FILE = open(args.strpe_log, 'w', 0)
             '''
+
+            peer.receive_dsa_key()
+
+            
             # }}}
         else:
             # {{{ IP multicast mode
@@ -277,6 +284,7 @@ class Peer():
         peer.BufferData()
         #threading.Thread(target=self.console, args=(peer,)).start()
         #peer.Run()
+        _print_("RUN")
         threading.Thread(target=peer.Run, args=()).start() #it doesn't work properly. It would be running in a different Thread.
         self.console(peer)
 

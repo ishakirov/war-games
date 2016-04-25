@@ -21,8 +21,9 @@ import struct
 #from core.common import Common
 from _print_ import _print_
 from color import Color
-from splitter_strpeds import SplitterSTRPEDS
 
+sys.path.append('lib/p2psp/bin/')
+from libp2psp import SplitterSTRPEDS
 
 try:
     import colorama                       # Enable console color using ANSI codes in Windows
