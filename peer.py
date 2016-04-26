@@ -32,9 +32,8 @@ except ImportError:
 from color import Color
 from _print_ import _print_
 sys.path.append('lib/p2psp/bin/')
-from libp2psp import PeerDBS, MonitorDBS
+from libp2psp import PeerDBS, MonitorDBS, PeerSTRPEDS
 from malicious_peer import MaliciousPeer
-from peer_strpeds import PeerSTRPEDS
 
 # }}}
 
@@ -161,7 +160,7 @@ class Peer():
         else:
             print("nothing")
             #peer = PeerDBS() #change for strpeds
-            peer = PeerSTRPEDS(PeerDBS())
+            peer = PeerSTRPEDS()
             
         if args.splitter_addr:
             peer.splitter_addr = socket.gethostbyname(args.splitter_addr)
@@ -263,7 +262,7 @@ class Peer():
                 peer.LOG_FILE = open(args.strpe_log, 'w', 0)
             '''
 
-            peer.receive_dsa_key()
+            peer.ReceiveDsaKey()
 
             
             # }}}
