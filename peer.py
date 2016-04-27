@@ -121,7 +121,7 @@ class Peer():
         else:
             print("release mode")
             
-        peer = PeerDBS()
+        peer = PeerSTRPEDS()
         parser = argparse.ArgumentParser(description='This is the peer node of a P2PSP team.')
         
         parser.add_argument('--enable_chunk_loss', help='Forces a lost of chunks')
@@ -156,11 +156,13 @@ class Peer():
             if args.persistent:
                 peer.setPersistentAttack(True)
         elif args.monitor:
-            peer = MonitorDBS()
+            #peer = MonitorDBS()
+            print("PeerSTRPEDS Initialized")
+            #peer = PeerSTRPEDS()
         else:
-            print("nothing")
+            print("Nothing")
             #peer = PeerDBS() #change for strpeds
-            peer = PeerSTRPEDS()
+            #peer = PeerSTRPEDS()
             
         if args.splitter_addr:
             peer.splitter_addr = socket.gethostbyname(args.splitter_addr)
@@ -262,7 +264,9 @@ class Peer():
                 peer.LOG_FILE = open(args.strpe_log, 'w', 0)
             '''
 
+            print(Color.red, "Receiving DSA Key", Color.none)
             peer.ReceiveDsaKey()
+            
 
             
             # }}}
@@ -285,7 +289,7 @@ class Peer():
         #peer.Run()
         _print_("RUN")
         threading.Thread(target=peer.Run, args=()).start() #it doesn't work properly. It would be running in a different Thread.
-        self.console(peer)
+        #self.console(peer)
 
                 
         
