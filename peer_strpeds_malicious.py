@@ -1,4 +1,5 @@
 """
+@package core
 malicious_peer module
 """
 
@@ -14,69 +15,73 @@ import socket
 import sys
 import threading
 import random
-import array
 
-from color import Color
-from _print_ import _print_
-
-sys.path.append('lib/p2psp/bin/')
-from libp2psp import PeerDBS, PeerSTRPEDS
+from core.color import Color
+from core._print_ import _print_
+from core.peer_dbs import Peer_DBS
+from core.peer_strpeds import Peer_StrpeDs
+<<<<<<< HEAD
+=======
 
 def _p_(*args, **kwargs):
     """Colorize the output."""
-    #sys.stdout.write(Common.DBS)
-    _print_("DBS (malicious):", *args)
+    sys.stdout.write(Common.DBS)
+    _print_("DBS (STRPEDS malicious):", *args)
     sys.stdout.write(Color.none)
+>>>>>>> master
 
-class MaliciousPeer(PeerSTRPEDS):
+class Peer_StrpeDsMalicious(Peer_StrpeDs):
 
     persistentAttack = False
     onOffAttack = False
-    onOffRatio = 100
+    onOffRatio = 1.0
     selectiveAttack = False
-    selectedPeersForAttack = []
+    selectedPeersForSelectiveAttack = []
+    badMouthAttack = False
 
     def __init__(self, peer):
-        # {{{
-        PeerSTRPEDS.__init__(self)
-        _p_("Initialized")
-        # }}}
-        
-    def ProcessMessage(self, message, sender):
-        # {{{ Now, receive and send.
-        
-        print (Color.red, "PROCESS MESSAGE Malicious python", Color.none)
 
-        if len(message) == self.message_size:
+        _p_("Initialized")
+
+    def process_message(self, message, sender):
+        if sender in self.bad_peers:
+            return -1
+
+        if self.is_current_message_from_splitter() or self.check_message(message, sender):
+            if self.is_control_message(message) and message == 'B':
+                return self.handle_bad_peers_request()
+            else:
+                return self.dbs_process_message(message, sender)
+        else:
+            self.process_bad_message(message, sender)
+            return -1
+
+    def dbs_process_message(self, message, sender):
+        # {{{ Now, receive and send.
+
+        if len(message) == struct.calcsize(self.message_format):
             # {{{ A video chunk has been received
-            
-            chunk_number, chunk = struct.unpack("H1024s", message)
-            chunk_number = socket.ntohs(chunk_number)
-            #self.chunks[chunk_number % self.buffer_size] = chunk
-            self.InsertChunk(chunk_number%self.buffer_size, chunk)
-            #self.received_flag[chunk_number % self.buffer_size] = True
-            #It's not necessary because InsertChunk does it.
+
+            chunk_number, chunk = self.unpack_message(message)
+            self.chunks[chunk_number % self.buffer_size] = chunk
+            self.received_flag[chunk_number % self.buffer_size] = True
             self.received_counter += 1
 
-            #maybe get the splitter tuple as a property would be useful
-            if sender == (self.splitter_addr,self.splitter_port):
+            if sender == self.splitter:
                 # {{{ Send the previous chunk in burst sending
                 # mode if the chunk has not been sent to all
                 # the peers of the list of peers.
 
                 # {{{ debug
 
-                print (Color.red, "Me <-", chunk_number, "-", str(sender))
-                
-                #if __debug__:
-                   # _print_("DBS:", self.team_socket.getsockname(), \
-                     #   Color.red, "<-", Color.none, chunk_number, "-", sender)
+                if __debug__:
+                    _print_("DBS:", self.team_socket.getsockname(), \
+                        Color.red, "<-", Color.none, chunk_number, "-", sender)
 
                 # }}}
 
-                while( (self.receive_and_feed_counter < len(self.GetPeerList())) and (self.receive_and_feed_counter > 0) ):
-                    peer = self.GetPeerList()[self.receive_and_feed_counter]
-                    print(Color.red, "SENDCHUNK", Color.none)
+                while( (self.receive_and_feed_counter < len(self.peer_list)) and (self.receive_and_feed_counter > 0) ):
+                    peer = self.peer_list[self.receive_and_feed_counter]
                     self.send_chunk(peer)
 
                     # {{{ debug
@@ -90,16 +95,15 @@ class MaliciousPeer(PeerSTRPEDS):
                     # }}}
 
                     self.debt[peer] += 1
-                    
                     if self.debt[peer] > self.MAX_CHUNK_DEBT:
                         print (Color.red, "DBS:", peer, 'removed by unsupportive (' + str(self.debt[peer]) + ' lossess)', Color.none)
                         del self.debt[peer]
-                        self.GetPeerList().remove(peer)
+                        self.peer_list.remove(peer)
 
                     self.receive_and_feed_counter += 1
 
                 self.receive_and_feed_counter = 0
-                self.receive_and_feed_previous = bytes(message)
+                self.receive_and_feed_previous = message
 
                # }}}
             else:
@@ -107,46 +111,44 @@ class MaliciousPeer(PeerSTRPEDS):
 
                 # {{{ debug
 
-                #if __debug__:
-                #   print ("DBS:", self.team_socket.getsockname(), \
-                #        Color.green, "<-", Color.none, chunk_number, "-", sender)
+                if __debug__:
+                    print ("DBS:", self.team_socket.getsockname(), \
+                        Color.green, "<-", Color.none, chunk_number, "-", sender)
 
                 # }}}
 
-                if sender not in self.GetPeerList():
+                if sender not in self.peer_list:
                     # The peer is new
-                    self.InsertPeer(sender)
-                    self.SetDebt(sender,0)
+                    self.peer_list.append(sender)
+                    self.debt[sender] = 0
                     print (Color.green, "DBS:", sender, 'added by chunk', \
                         chunk_number, Color.none)
                 else:
-                    self.SetDebt(sender, (self.GetDebt(sender)-1))
+                    self.debt[sender] -= 1
 
                 # }}}
 
             # {{{ A new chunk has arrived and the
             # previous must be forwarded to next peer of the
             # list of peers.
-            if ( self.receive_and_feed_counter < len(self.GetPeerList()) and ( self.receive_and_feed_previous != '') ):
+            if ( self.receive_and_feed_counter < len(self.peer_list) and ( self.receive_and_feed_previous != '') ):
                 # {{{ Send the previous chunk in congestion avoiding mode.
 
-                peer = self.GetPeerList()[self.receive_and_feed_counter]
-                print("SENDCHUNK")
+                peer = self.peer_list[self.receive_and_feed_counter]
                 self.send_chunk(peer)
 
-                self.AddDebt(peer)
-                
-                if  self.GetDebt(peer) > self.max_chunk_debt:
-                    print (Color.red, "DBS:", peer, 'removed by unsupportive (' + str(self.GetDebt(peer)) + ' lossess)', Color.none)
-                    self.RemoveDebt(peer)
-                    self.RemovePeer(peer)
+                self.debt[peer] += 1
+                if self.debt[peer] > self.MAX_CHUNK_DEBT:
+                    print (Color.red, "DBS:", peer, 'removed by unsupportive (' + str(self.debt[peer]) + ' lossess)', Color.none)
+                    del self.debt[peer]
+                    self.peer_list.remove(peer)
 
                 # {{{ debug
 
-                #if __debug__:
-                    #print ("DBS:", self.team_socket.getsockname(), "-", \
-                    #    socket.ntohs(struct.unpack(self.message_format, self.receive_and_feed_previous)[0]),\
-                    #    Color.green, "->", Color.none, peer)
+                if __debug__:
+                    print ("DBS:", self.team_socket.getsockname(), "-", \
+                        socket.ntohs(struct.unpack(self.message_format, self.receive_and_feed_previous)[0]),\
+                        Color.green, "->", Color.none, peer)
 
                 # }}}
 
@@ -161,37 +163,34 @@ class MaliciousPeer(PeerSTRPEDS):
         else:
             # {{{ A control chunk has been received
             print("DBS: Control received")
-            if message[0] == 'H':
-                if sender not in self.GetPeerList():
+            if message == 'H':
+                if sender not in self.peer_list:
                     # The peer is new
-
-                    self.InsertPeer(sender)
+                    self.peer_list.append(sender)
                     self.debt[sender] = 0
                     print (Color.green, "DBS:", sender, 'added by [hello]', Color.none)
             else:
-                if sender in self.GetPeerList():
+                if sender in self.peer_list:
                     sys.stdout.write(Color.red)
                     print ("DBS:", self.team_socket.getsockname(), '\b: received "goodbye" from', sender)
                     sys.stdout.write(Color.none)
-                    self.RemovePeer(sender)
+                    self.peer_list.remove(sender)
                     del self.debt[sender]
             return -1
-        
+
             # }}}
 
         # }}}
 
     def send_chunk(self, peer):
-        
         if self.persistentAttack:
-            self.SendChunk(bytes(self.get_poisoned_chunk(self.receive_and_feed_previous)), peer)
+            self.team_socket.sendto(self.get_poisoned_chunk(self.receive_and_feed_previous), peer)
             self.sendto_counter += 1
-            print (Color.red, "Persistent Attack", Color.none)
             return
-        '''
+
         if self.onOffAttack:
-            r = random.randint(1, 100)
-            if r <= self.onOffRatio:
+            x = random.randint(1, 100)
+            if (x <= self.onOffRatio):
                 self.team_socket.sendto(self.get_poisoned_chunk(self.receive_and_feed_previous), peer)
             else:
                 self.team_socket.sendto(self.receive_and_feed_previous, peer)
@@ -200,29 +199,28 @@ class MaliciousPeer(PeerSTRPEDS):
             return
 
         if self.selectiveAttack:
-            if peer in self.selectedPeersForAttack:
+            if peer in self.selectedPeersForSelectiveAttack:
                 self.team_socket.sendto(self.get_poisoned_chunk(self.receive_and_feed_previous), peer)
             else:
                 self.team_socket.sendto(self.receive_and_feed_previous, peer)
 
             self.sendto_counter += 1
             return
-        '''
-        print (Color.red, "SENDING....", Color.none)
-        #self.team_socket.sendto(self.receive_and_feed_previous, peer)
-        self.SendChunk(bytes(self.receive_and_feed_previous), peer)
+
+        self.team_socket.sendto(self.receive_and_feed_previous, peer)
         self.sendto_counter += 1
-        print (Color.red, "No Attack", Color.none)
-        
-    def get_poisoned_chunk(self, chunk):
-        chunk_number, chunk = struct.unpack("H1024s", chunk)
-        return struct.pack("H1024s", socket.ntohs(chunk_number), bytes(("fake").encode('utf-8')))
+
+    def get_poisoned_chunk(self, message):
+        if len(message) == struct.calcsize(self.message_format):
+            n, m, k1, k2 = struct.unpack(self.message_format, message)
+            return struct.pack(self.message_format, n, "0", k1, k2)
+        return message
 
     def setPersistentAttack(self, value):
         self.persistentAttack = value
 
     def setOnOffAttack(self, value, ratio):
-        self.onOffAttack = True
+        self.onOffAttack = value
         self.onOffRatio = ratio
 
     def setSelectiveAttack(self, value, selected):
@@ -231,3 +229,13 @@ class MaliciousPeer(PeerSTRPEDS):
             l = peer.split(':')
             peer_obj = (l[0], int(l[1]))
             self.selectedPeersForAttack.append(peer_obj)
+
+    def setBadMouthAttack(self, value, selected):
+        self.badMouthAttack = value
+        if value:
+            for peer in selected:
+                l = peer.split(':')
+                peer_obj = (l[0], int(l[1]))
+                self.bad_peers.append(peer_obj)
+        else:
+            self.bad_peers = []
