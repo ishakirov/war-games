@@ -35,22 +35,34 @@ class MaliciousPeer(PeerSTRPEDS):
     onOffRatio = 100
     selectiveAttack = False
     selectedPeersForAttack = []
+    badMouthAttack = False
 
     def __init__(self, peer):
         # {{{
         PeerSTRPEDS.__init__(self)
         _p_("Initialized")
         # }}}
-        
+
     def ProcessMessage(self, message, sender):
+        if sender in self.GetBadPeerList():
+            return -1
+        if self.IsCurrentMessageFromSplitter() of self.CheckMessage(message, sender):
+            if self.IsControlMessage(message) and message == 'B':
+                return self.HandleBadPeersRequest()
+            else:
+                return DBSProcessMessage(message,sender)
+        else:
+            self.ProcessBadMessage(message, sender)
+            return -1
+        
+    def DBSProcessMessage(self, message, sender):
         # {{{ Now, receive and send.
         
         print (Color.red, "PROCESS MESSAGE Malicious python", Color.none)
-
         if len(message) == self.message_size:
             # {{{ A video chunk has been received
             
-            chunk_number, chunk = struct.unpack("H1024s", message)
+            chunk_number, chunk = struct.unpack("H1024s40s40s", message)
             chunk_number = socket.ntohs(chunk_number)
             #self.chunks[chunk_number % self.buffer_size] = chunk
             self.InsertChunk(chunk_number%self.buffer_size, chunk)
@@ -94,8 +106,9 @@ class MaliciousPeer(PeerSTRPEDS):
                     if self.debt[peer] > self.MAX_CHUNK_DEBT:
                         print (Color.red, "DBS:", peer, 'removed by unsupportive (' + str(self.debt[peer]) + ' lossess)', Color.none)
                         del self.debt[peer]
-                        self.GetPeerList().remove(peer)
-
+                        #self.GetPeerList().remove(peer)
+                        self.RemovePeer(peer)
+                        
                     self.receive_and_feed_counter += 1
 
                 self.receive_and_feed_counter = 0
@@ -231,3 +244,13 @@ class MaliciousPeer(PeerSTRPEDS):
             l = peer.split(':')
             peer_obj = (l[0], int(l[1]))
             self.selectedPeersForAttack.append(peer_obj)
+            
+    def setBadMouthAttack(self, value, selected):
+        self.badMouthAttack = value
+        if value:
+            for peer in selected:
+                l = peer.split(':')
+                peer_obj = (l[0], int(l[1]))
+                self.bad_peers.append(peer_obj)
+        else:
+            self.bad_peers = []
