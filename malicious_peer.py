@@ -46,7 +46,8 @@ class MaliciousPeer(PeerSTRPEDS):
     def ProcessMessage(self, message, sender):
         if sender in self.GetBadPeerList():
             return -1
-        if self.IsCurrentMessageFromSplitter() of self.CheckMessage(message, sender):
+        print("llega")
+        if self.IsCurrentMessageFromSplitter() or self.CheckMessage(message, sender):
             if self.IsControlMessage(message) and message == 'B':
                 return self.HandleBadPeersRequest()
             else:
