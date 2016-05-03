@@ -46,24 +46,25 @@ class MaliciousPeer(PeerSTRPEDS):
     def ProcessMessage(self, message, sender):
         if sender in self.GetBadPeerList():
             return -1
-        print("llega")
-        if self.IsCurrentMessageFromSplitter() or self.CheckMessage(message, sender):
-            if self.IsControlMessage(message) and message == 'B':
+
+        if self.IsCurrentMessageFromSplitter() or self.CheckMessage(bytes(message), sender):
+            if self.IsControlMessage(bytes(message)) and message == 'B':
                 return self.HandleBadPeersRequest()
             else:
-                return DBSProcessMessage(message,sender)
+                return self.DBSProcessMessage(message,sender)
         else:
-            self.ProcessBadMessage(message, sender)
+            self.ProcessBadMessage(bytes(message), sender)
             return -1
         
     def DBSProcessMessage(self, message, sender):
         # {{{ Now, receive and send.
         
         print (Color.red, "PROCESS MESSAGE Malicious python", Color.none)
+        print ("len(message) = ", len(message))
         if len(message) == self.message_size:
             # {{{ A video chunk has been received
-            
-            chunk_number, chunk = struct.unpack("H1024s40s40s", message)
+            print("longitud: ", len(message))
+            chunk_number, chunk, k1, k2 = struct.unpack("H1024s40s40s", message)
             chunk_number = socket.ntohs(chunk_number)
             #self.chunks[chunk_number % self.buffer_size] = chunk
             self.InsertChunk(chunk_number%self.buffer_size, chunk)
@@ -93,20 +94,21 @@ class MaliciousPeer(PeerSTRPEDS):
                     self.send_chunk(peer)
 
                     # {{{ debug
-
+                    '''
                     if __debug__:
                         print ("DBS:", self.team_socket.getsockname(), "-",\
                             socket.ntohs(struct.unpack(self.message_format, \
                                                            self.receive_and_feed_previous)[0]),\
                             Color.green, "->", Color.none, peer)
-
+                    '''
                     # }}}
 
-                    self.debt[peer] += 1
+                    #self.debt[peer] += 1
+                    self.AddDebt(peer)
                     
-                    if self.debt[peer] > self.MAX_CHUNK_DEBT:
-                        print (Color.red, "DBS:", peer, 'removed by unsupportive (' + str(self.debt[peer]) + ' lossess)', Color.none)
-                        del self.debt[peer]
+                    if self.GetDebt(peer) > self.max_chunk_debt:
+                        print (Color.red, "DBS:", peer, 'removed by unsupportive (' + str(self.GetDebt(peer)) + ' lossess)', Color.none)
+                        self.RemoveDebt(peer)
                         #self.GetPeerList().remove(peer)
                         self.RemovePeer(peer)
                         
@@ -175,6 +177,8 @@ class MaliciousPeer(PeerSTRPEDS):
         else:
             # {{{ A control chunk has been received
             print("DBS: Control received")
+
+            print("message ", message[0])
             if message[0] == 'H':
                 if sender not in self.GetPeerList():
                     # The peer is new
@@ -185,10 +189,11 @@ class MaliciousPeer(PeerSTRPEDS):
             else:
                 if sender in self.GetPeerList():
                     sys.stdout.write(Color.red)
-                    print ("DBS:", self.team_socket.getsockname(), '\b: received "goodbye" from', sender)
+                    print ("DBS:", "Me" , '\b: received "goodbye" from', sender)
                     sys.stdout.write(Color.none)
                     self.RemovePeer(sender)
-                    del self.debt[sender]
+                    self.RemoveDebt(sender)
+
             return -1
         
             # }}}
@@ -229,8 +234,8 @@ class MaliciousPeer(PeerSTRPEDS):
         print (Color.red, "No Attack", Color.none)
         
     def get_poisoned_chunk(self, chunk):
-        chunk_number, chunk = struct.unpack("H1024s", chunk)
-        return struct.pack("H1024s", socket.ntohs(chunk_number), bytes(("fake").encode('utf-8')))
+        chunk_number, chunk, k1, k2 = struct.unpack("H1024s40s40s", chunk)
+        return struct.pack("H1024s40s40s", socket.ntohs(chunk_number), bytes(("fake").encode('utf-8')), k1, k2)
 
     def setPersistentAttack(self, value):
         self.persistentAttack = value
