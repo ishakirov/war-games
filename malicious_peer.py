@@ -202,7 +202,7 @@ class MaliciousPeer(PeerSTRPEDS):
 
     def send_chunk(self, peer):
         
-        if self.persistentAttack:
+        if self.persistentAttack and len(self.receive_and_feed_previous) == 1106:
             self.SendChunk(bytes(self.get_poisoned_chunk(self.receive_and_feed_previous)), peer)
             self.sendto_counter += 1
             print (Color.red, "Persistent Attack", Color.none)
