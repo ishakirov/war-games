@@ -201,41 +201,45 @@ class MaliciousPeer(PeerSTRPEDS):
         # }}}
 
     def send_chunk(self, peer):
-        
-        if self.persistentAttack and len(self.receive_and_feed_previous) == 1106:
-            self.SendChunk(bytes(self.get_poisoned_chunk(self.receive_and_feed_previous)), peer)
-            self.sendto_counter += 1
-            print (Color.red, "Persistent Attack", Color.none)
-            return
-        '''
-        if self.onOffAttack:
+        if len(self.receive_and_feed_previous) == 1106:
+            if self.persistentAttack:
+                #self.SendChunk(self.get_poisoned_chunk(self.receive_and_feed_previous), peer)
+                self.SendFakeChunk(peer)
+                self.sendto_counter += 1
+                print (Color.red, "Persistent Attack", Color.none)
+                return
+            '''
+            if self.onOffAttack:
             r = random.randint(1, 100)
             if r <= self.onOffRatio:
-                self.team_socket.sendto(self.get_poisoned_chunk(self.receive_and_feed_previous), peer)
+            self.team_socket.sendto(self.get_poisoned_chunk(self.receive_and_feed_previous), peer)
             else:
-                self.team_socket.sendto(self.receive_and_feed_previous, peer)
-
+            self.team_socket.sendto(self.receive_and_feed_previous, peer)
+            
             self.sendto_counter += 1
             return
+            '''
+            if self.selectiveAttack:
+                if peer in self.selectedPeersForAttack:
+                    #self.SendChunk(self.get_poisoned_chunk(self.receive_and_feed_previous), peer)
+                    self.SendFakeChunk(peer)
+                else:
+                    #self.SendChunk(self.receive_and_feed_previous, peer)
+                    self.SendRegularChunk(peer)
 
-        if self.selectiveAttack:
-            if peer in self.selectedPeersForAttack:
-                self.team_socket.sendto(self.get_poisoned_chunk(self.receive_and_feed_previous), peer)
-            else:
-                self.team_socket.sendto(self.receive_and_feed_previous, peer)
-
-            self.sendto_counter += 1
-            return
-        '''
-        print (Color.red, "SENDING....", Color.none)
-        #self.team_socket.sendto(self.receive_and_feed_previous, peer)
-        self.SendChunk(bytes(self.receive_and_feed_previous), peer)
-        self.sendto_counter += 1
-        print (Color.red, "No Attack", Color.none)
+                self.sendto_counter += 1
+                print (Color.red, "Selective Attack", Color.none)
+                return
         
-    def get_poisoned_chunk(self, chunk):
-        chunk_number, chunk, k1, k2 = struct.unpack("H1024s40s40s", chunk)
-        return struct.pack("H1024s40s40s", socket.ntohs(chunk_number), bytes(("fake").encode('utf-8')), k1, k2)
+                #self.team_socket.sendto(self.receive_and_feed_previous, peer)
+            #self.SendChunk(bytes(self.receive_and_feed_previous), peer)
+            self.SendRegularChunk(peer)
+            self.sendto_counter += 1
+            print (Color.red, "No Attack", Color.none)
+        
+    def get_poisoned_chunk(self, message):
+        chunk_number, chunk, k1, k2 = struct.unpack("H1024s40s40s", message)
+        return struct.pack("H1024s40s40s", chunk_number, ("fake_chunk").encode("utf8"), k1, k2)
 
     def setPersistentAttack(self, value):
         self.persistentAttack = value

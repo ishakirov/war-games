@@ -242,9 +242,9 @@ class Peer():
                     peer.setOnOffAttack(True, int(args.on_off_ratio))
                 if args.selective:
                     peer.setSelectiveAttack(True, args.selective)
-
-            if args.malicious and args.strpeds:
-                peer = Peer_StrpeDsMalicious(peer)
+            '''
+            if args.malicious:
+                #peer = Peer_StrpeDsMalicious(peer)
                 if args.persistent:
                     peer.setPersistentAttack(True)
                 if args.on_off_ratio:
@@ -253,7 +253,7 @@ class Peer():
                     peer.setSelectiveAttack(True, args.selective)
                 if args.bad_mouth:
                     peer.setBadMouthAttack(True, args.bad_mouth)
-
+            '''
             if args.trusted:
                 peer = TrustedPeer(peer)
                 if args.checkall:
