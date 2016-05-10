@@ -203,37 +203,37 @@ class MaliciousPeer(PeerSTRPEDS):
     def send_chunk(self, peer):
         if len(self.receive_and_feed_previous) == 1106:
             if self.persistentAttack:
-                #self.SendChunk(self.get_poisoned_chunk(self.receive_and_feed_previous), peer)
-                self.SendFakeChunk(peer)
+                self.SendChunk(self.get_poisoned_chunk(self.receive_and_feed_previous), peer)
+                #self.SendFakeChunk(peer)
                 self.sendto_counter += 1
                 print (Color.red, "Persistent Attack", Color.none)
                 return
-            '''
-            if self.onOffAttack:
-            r = random.randint(1, 100)
-            if r <= self.onOffRatio:
-            self.team_socket.sendto(self.get_poisoned_chunk(self.receive_and_feed_previous), peer)
-            else:
-            self.team_socket.sendto(self.receive_and_feed_previous, peer)
             
-            self.sendto_counter += 1
-            return
-            '''
+            if self.onOffAttack:
+                r = random.randint(1, 100)
+                if r <= self.onOffRatio:
+                    self.SendChunk(self.get_poisoned_chunk(self.receive_and_feed_previous), peer)
+                else:
+                    self.SendChunk(self.receive_and_feed_previous, peer)
+            
+                self.sendto_counter += 1
+                return
+            
             if self.selectiveAttack:
                 if peer in self.selectedPeersForAttack:
-                    #self.SendChunk(self.get_poisoned_chunk(self.receive_and_feed_previous), peer)
-                    self.SendFakeChunk(peer)
+                    self.SendChunk(self.get_poisoned_chunk(self.receive_and_feed_previous), peer)
+                    #self.SendFakeChunk(peer)
                 else:
-                    #self.SendChunk(self.receive_and_feed_previous, peer)
-                    self.SendRegularChunk(peer)
+                    self.SendChunk(self.receive_and_feed_previous, peer)
+                    #self.SendRegularChunk(peer)
 
                 self.sendto_counter += 1
                 print (Color.red, "Selective Attack", Color.none)
                 return
         
                 #self.team_socket.sendto(self.receive_and_feed_previous, peer)
-            #self.SendChunk(bytes(self.receive_and_feed_previous), peer)
-            self.SendRegularChunk(peer)
+            self.SendChunk(bytes(self.receive_and_feed_previous), peer)
+            #self.SendRegularChunk(peer)
             self.sendto_counter += 1
             print (Color.red, "No Attack", Color.none)
         
