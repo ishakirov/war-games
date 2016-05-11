@@ -85,7 +85,7 @@ class Splitter():
         #parser.add_argument('--strpe', nargs='+', type=str, help='Selects STrPe model for DIS')
         #parser.add_argument('--strpeds', nargs='+', type=str, help='Selects STrPe-DS model for DIS')
         #parser.add_argument('--strpeds_majority_decision', help='Sets majority decision ratio for STrPe-DS model.')
-        #parser.add_argument('--strpe_log', help='Logging STrPe & STrPe-DS specific data to file.')
+        parser.add_argument('--strpeds_log', help='Logging STrPe-DS specific data to file.')
         #parser.add_argument('--TTL', help='Time To Live of the multicast messages. Default = {}.')#.format(Splitter_IMS.TTL))
         
         try:
@@ -137,7 +137,10 @@ class Splitter():
            splitter.max_number_of_monitors = int(args.max_number_of_monitor_peers)
            _print_("Maximun number of monitor peers =", str(splitter.max_number_of_monitors))
 
-
+        if args.strpeds_log != None:
+            splitter.SetLogging(True)
+            splitter.SetLogFile(args.strpeds_log)
+           
         # {{{ Run!
 
         splitter.Start()
@@ -223,20 +226,6 @@ class Splitter():
         # }}}
 
     # {{{# -COM-
-    '''
-    def init_strpe_splitter(self, type, trusted_peers, log_file = None):
-        if type == 'strpe':
-            re = StrpeSplitter()
-        if type == 'strpeds':
-            re = StrpeDsSplitter()
-        for peer in trusted_peers:
-            re.add_trusted_peer(peer)
-        if log_file != None:
-            re.LOGGING = True
-            re.LOG_FILE = open(log_file, 'w', 0)
-        return re
 
-    # }}}
-    '''
 
 x = Splitter()
