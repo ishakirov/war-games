@@ -23,7 +23,7 @@ Q = 500
 
 trusted_peers = []
 
-P_MP = 50
+P_MP = 80
 P_WIP = 100
 
 def checkdir():
@@ -203,7 +203,7 @@ def main(args):
     nPeers = 10
     nTrusted = 1
     nMalicious = 0
-    size= nPeersTeam = 10
+    sizeTeam= nPeersTeam = 10
     for opt, arg in opts:
         if opt == "-n":
             nPeers = int(arg)
