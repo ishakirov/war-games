@@ -46,7 +46,7 @@ def runStream():
         run("vlc Big_Buck_Bunny_small.ogv --sout \"#duplicate{dst=standard{mux=ogg,dst=:8080/test.ogg,access=http}}\"")
     else:
         run("/Applications/VLC.app/Contents/MacOS/VLC Big_Buck_Bunny_small.ogv --sout \"#duplicate{dst=standard{mux=ogg,dst=,access=http}}\"")
-    time.sleep(0.25)
+    time.sleep(2)
 
 def runSplitter(ds = False):
     prefix = ""
