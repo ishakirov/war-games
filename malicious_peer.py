@@ -206,7 +206,8 @@ class MaliciousPeer(PeerSTRPEDS):
                 self.SendChunk(self.get_poisoned_chunk(self.receive_and_feed_previous), peer)
                 #self.SendFakeChunk(peer)
                 self.sendto_counter += 1
-                print (Color.red, "Persistent Attack: ", str(peer), Color.none)
+                chunk_number, chunk, k1, k2 = struct.unpack("H1024s40s40s", self.get_poisoned_chunk(self.receive_and_feed_previous))
+                print (Color.red, "Persistent Attack: ", str(peer), "CN:", str(socket.ntohs(chunk_number)),  Color.none)
                 return
             
             if self.onOffAttack:
@@ -232,7 +233,7 @@ class MaliciousPeer(PeerSTRPEDS):
                 return
         
                 #self.team_socket.sendto(self.receive_and_feed_previous, peer)
-            self.SendChunk(bytes(self.receive_and_feed_previous), peer)
+            self.SendChunk(self.receive_and_feed_previous, peer)
             #self.SendRegularChunk(peer)
             self.sendto_counter += 1
             print (Color.red, "No Attack", Color.none)

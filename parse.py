@@ -24,6 +24,9 @@ def calcAverageBufferCorrectnes(roundTime):
             correctnesSum += info[0]
             fillingSum += info[1]
             NN += 1
+        else:
+            NN = 1
+
     return (correctnesSum / NN, fillingSum / NN)
 
 def calcAverageInFile(inFile, roundTime):
