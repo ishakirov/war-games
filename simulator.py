@@ -18,6 +18,8 @@ nPeers = nTrusted = nMalicious = sizeTeam = nPeersTeam = 0
 port = 60000
 playerPort = 61000
 
+currentRound = 0
+
 LAST_ROUND_NUMBER = 0
 Q = 500
 
@@ -161,7 +163,8 @@ def addRegularOrMaliciousPeer():
 	    nPeersTeam+=1
             runPeer(False, False, True)
     else:
-	print "Max Size "+str(sizeTeam)+" Current Size "+str(nPeersTeam)
+	progress ="Round "+ str(currentRound-LAST_ROUND_NUMBER)+"/"+str(Q)+" Size "+str(sizeTeam)+"/"+str(nPeersTeam)+'\r'
+        print progress
 
 def checkForTrusted():
     with open("./strpe-testing/splitter.log") as fh:
@@ -196,6 +199,7 @@ def findLastRound():
     return -1
 
 def checkForRounds():
+    global currentRound
     currentRound = findLastRound()
     return currentRound - LAST_ROUND_NUMBER < Q
 
