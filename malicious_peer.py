@@ -34,8 +34,13 @@ class MaliciousPeer(PeerSTRPEDS):
     onOffAttack = False
     onOffRatio = 100
     selectiveAttack = False
-    selectedPeersForAttack = []
+    selectedPeersForSelectiveAttack = []
+    regularPeers = []
+    mainTarget = None
+    numberChunksSendToMainTarget = 0
+    allAttackC = False
     badMouthAttack = False
+    MPTR = 2
 
     def __init__(self, peer):
         # {{{
@@ -43,11 +48,47 @@ class MaliciousPeer(PeerSTRPEDS):
         _p_("Initialized")
         # }}}
 
+
+    def firshMainTarget(self):
+        self.mainTarget = self.chooseMainTarget()
+
+    def chooseMainTarget(self):
+        attackedPeers = []
+        with open('attacked.txt', 'r') as fh:
+            for line in fh:
+                attackedPeers.append(line)
+            fh.close()
+
+        maliciousPeers = []
+        with open('malicious.txt', 'r') as fh:
+            for line in fh:
+                maliciousPeers.append(line)
+            fh.close()
+
+        re = None
+        while re == None:
+            r = random.randint(0, len(self.GetPeerList())-1)
+            peerEndpoint = '{0}:{1}'.format(self.GetPeerList()[r][0], self.GetPeerList()[r][1])
+            if not ((peerEndpoint+'\n') in attackedPeers) and not ((peerEndpoint+'\n') in maliciousPeers):
+                re = self.GetPeerList()[r]
+                print ("====>", peerEndpoint, attackedPeers, maliciousPeers)
+
+        with open('attacked.txt', 'a') as fh:
+            if not peerEndpoint in attackedPeers:
+                fh.write('{0}:{1}\n'.format(re[0], re[1]))
+            fh.close()
+
+        return re
+
+
     def ProcessMessage(self, message, sender):
+
         if sender in self.GetBadPeerList():
             return -1
 
         if self.IsCurrentMessageFromSplitter() or self.CheckMessage(bytes(message), sender):
+            if self.IsCurrentMessageFromSplitter() and self.allAttackC:
+                self.refreshRegularPeers()
             if self.IsControlMessage(bytes(message)) and message == 'B':
                 return self.HandleBadPeersRequest()
             else:
@@ -147,7 +188,6 @@ class MaliciousPeer(PeerSTRPEDS):
                 # {{{ Send the previous chunk in congestion avoiding mode.
 
                 peer = self.GetPeerList()[self.receive_and_feed_counter]
-                print("SENDCHUNK")
                 self.send_chunk(peer)
 
                 self.AddDebt(peer)
@@ -200,12 +240,52 @@ class MaliciousPeer(PeerSTRPEDS):
 
         # }}}
 
+    def allAttack(self):
+        print("ALL_ATTACK MODE")
+        self.allAttackC = True
+        del self.regularPeers[:]
+        with open('regular.txt', 'a') as fh:
+            fh.write('{0}:{1}\n'.format(self.mainTarget[0], self.mainTarget[1]))
+            fh.close()
+        self.refreshRegularPeers()
+
+
+    def refreshRegularPeers(self):
+        with open('regular.txt', 'r') as fh:
+            for line in fh:
+                t = (line.split(':')[0], int(line.split(':')[1]))
+                if t in self.GetPeerList():
+                    self.regularPeers.append(t)
+                if len(self.regularPeers) * 2 > len(self.GetPeerList()):
+                    break
+            fh.close()
+    
     def send_chunk(self, peer):
         if len(self.receive_and_feed_previous) == 1106:
             if self.persistentAttack:
-                self.SendChunk(self.get_poisoned_chunk(self.receive_and_feed_previous), peer)
-                #self.SendFakeChunk(peer)
-                self.sendto_counter += 1
+                if peer == self.mainTarget and self.numberChunksSendToMainTarget < self.MPTR:
+                    self.SendChunk(self.get_poisoned_chunk(self.receive_and_feed_previous), peer)
+                    print("mainTarget attack:", peer)
+                    self.sendto_counter += 1
+                    print("mainTarget+=1 ({0})".format(self.numberChunksSendToMainTarget))
+                elif self.allAttackC:
+                    if peer in self.regularPeers or peer == self.mainTarget:
+                        self.SendChunk(self.get_poisoned_chunk(self.receive_and_feed_previous), peer)
+                        print("allAttackC attack:", peer)
+		        #self.peer_list.remove(peer)
+                    else:
+                        self.SendChunk(self.receive_and_feed_previous, peer)
+                        print("No poisoned 1", peer)
+                elif peer == self.mainTarget and self.numberChunksSendToMainTarget >= self.MPTR:
+                    self.allAttack()
+                    self.SendChunk(self.get_poisoned_chunk(self.receive_and_feed_previous), peer)
+                    print("mainTarget attack:", peer)
+                    self.mainTarget = self.chooseMainTarget()
+                    #To select a new mainTarget after incorporating a new peer to the regular list
+                else:
+                    self.SendChunk(bytes(self.receive_and_feed_previous), peer)
+                    print("No poisoned 2", peer)
+
                 chunk_number, chunk, k1, k2 = struct.unpack("H1024s40s40s", self.get_poisoned_chunk(self.receive_and_feed_previous))
                 print (Color.red, "Persistent Attack: ", str(peer), "CN:", str(socket.ntohs(chunk_number)),  Color.none)
                 return
@@ -221,20 +301,16 @@ class MaliciousPeer(PeerSTRPEDS):
                 return
             
             if self.selectiveAttack:
-                if peer in self.selectedPeersForAttack:
+                if peer in self.selectedPeersForSelectiveAttack:
                     self.SendChunk(self.get_poisoned_chunk(self.receive_and_feed_previous), peer)
-                    #self.SendFakeChunk(peer)
                 else:
                     self.SendChunk(self.receive_and_feed_previous, peer)
-                    #self.SendRegularChunk(peer)
 
                 self.sendto_counter += 1
                 print (Color.red, "Selective Attack", Color.none)
                 return
         
-                #self.team_socket.sendto(self.receive_and_feed_previous, peer)
             self.SendChunk(self.receive_and_feed_previous, peer)
-            #self.SendRegularChunk(peer)
             self.sendto_counter += 1
             print (Color.red, "No Attack", Color.none)
         

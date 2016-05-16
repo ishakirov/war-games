@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-import os, sys, getopt
+import os, sys, getopt, shutil
 import time
 import random
 import shlex, subprocess
@@ -23,8 +23,15 @@ Q = 500
 
 trusted_peers = []
 
-P_MP = 80
-P_WIP = 100 - P_MP 
+P_IN = 100
+P_OUT = 100
+P_WIP = 50
+P_MP = 100 - P_WIP
+
+#TODO: Churn point 5. Weibull distribution.
+#TODO: Churn point 6. Pout probability to leave the team after Weibull time exp
+#TODO: MP point 2. MP should not attack over 50% of the team.
+#TODO: WIP behaviour under attacks.
 
 def checkdir():
     if not os.path.exists("./strpe-testing"):
@@ -196,7 +203,7 @@ def main(args):
     random.seed(SEED)
 
     try:
-        opts, args = getopt.getopt(args, "n:t:m:z:sq:")
+        opts, args = getopt.getopt(args, "n:t:m:z:s:c")
     except getopt.GetoptError:
         usage()
         sys.exit(2)
@@ -218,6 +225,18 @@ def main(args):
             ds = True
 	elif opt == "-z":
 	    sizeTeam = int(arg)
+        elif opt == "-c":
+            try:
+                os.remove("trusted.txt")
+                os.remove("malicious.txt")
+                os.remove("attacked.txt")
+                os.remove("regular.txt")
+                shutil.rmtree("./strpe-testing")
+            except:
+                pass
+            
+            print("temp files removed")
+            sys.exit()
 
     print 'running with {0} peers ({1} trusted and {2} mal)'.format(nPeers, nTrusted, nMalicious)
 

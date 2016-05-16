@@ -245,6 +245,7 @@ class Peer():
             '''
             if args.malicious:
                 #peer = Peer_StrpeDsMalicious(peer)
+                peer.firshMainTarget()
                 if args.persistent:
                     peer.setPersistentAttack(True)
                 if args.on_off_ratio:
