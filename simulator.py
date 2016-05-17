@@ -10,7 +10,6 @@ import platform
 
 processes = []
 DEVNULL = open(os.devnull, 'wb')
-
 SEED = 12345678
 
 nPeers = nTrusted = nMalicious = sizeTeam = nPeersTeam = 0
@@ -19,6 +18,7 @@ port = 60000
 playerPort = 61000
 
 currentRound = 0
+iteration=0
 
 LAST_ROUND_NUMBER = 0
 Q = 500
@@ -143,12 +143,10 @@ def churn():
         time.sleep(0.5)
 
 def addRegularOrMaliciousPeer():
-    global nMalicious, nPeersTeam, P_MP, P_WIP
+    global nMalicious, nPeersTeam, P_MP, P_WIP, iteration
     if sizeTeam > nPeersTeam:
         r = random.randint(1,100)
-        print "randon" + str(r) + "P_MP= " + str(P_MP) + "P_WIP" + str(P_WIP)
         if r <= P_MP:
-            print "nMalicious= " + str(nMalicious)
             if nMalicious>0:
                 with open("malicious.txt", "a") as fh:
                     fh.write('127.0.0.1:{0}\n'.format(port))
@@ -165,8 +163,12 @@ def addRegularOrMaliciousPeer():
 	    nPeersTeam+=1
             runPeer(False, False, True)
     else:
-	progress ="Round "+ str(currentRound-LAST_ROUND_NUMBER)+"/"+str(Q)+" Size "+str(sizeTeam)+"/"+str(nPeersTeam)+'\r'
-        print progress
+	progress ="Round "+ str(currentRound-LAST_ROUND_NUMBER)+"/"+str(Q)+" Size "+str(sizeTeam)+"/"+str(nPeersTeam)
+        iteration += 1
+        sys.stdout.flush()
+        print progress,
+        print "#"*(iteration%5),
+        print '\r'*(len(progress)+iteration),
 
 def checkForTrusted():
     with open("./strpe-testing/splitter.log") as fh:
@@ -191,18 +193,21 @@ def saveLastRound():
     LAST_ROUND_NUMBER = findLastRound()
 
 def findLastRound():
+    global iteration
     with open("./strpe-testing/splitter.log") as fh:
         for line in fh:
             pass
         result = re.match("(\d*.\d*)\t(\d*)\s(\d*).*", line)
         if result != None:
              return int(result.group(2))
-
     return -1
 
 def checkForRounds():
-    global currentRound
-    currentRound = findLastRound()
+    global currentRound, iteration
+    lastRound = findLastRound()
+    if lastRound != currentRound:
+        currentRound = lastRound
+        iteration = 0
     return currentRound - LAST_ROUND_NUMBER < Q
 
 def main(args):
@@ -260,7 +265,7 @@ def main(args):
     churn()
 
     #time.sleep(60)
-    print "finish!"
+    print "******************* finish! *******************"
 
     killall()
     return 0
