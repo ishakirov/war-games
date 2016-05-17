@@ -31,7 +31,6 @@ P_WIP = 50
 P_MP = 100 - P_WIP
 
 #TODO: Churn point 5. Weibull distribution.
-#TODO: Churn point 6. Pout probability to leave the team after Weibull time exp
 #TODO: MP point 2. MP should not attack over 50% of the team.
 #TODO: WIP behaviour under attacks.
 
@@ -144,17 +143,20 @@ def churn():
         time.sleep(0.5)
 
 def addRegularOrMaliciousPeer():
-    global nMalicious, nPeersTeam
-    r = random.randint(1,100)
+    global nMalicious, nPeersTeam, P_MP, P_WIP
     if sizeTeam > nPeersTeam:
-        if r <= P_MP and nMalicious>0:
-            with open("malicious.txt", "a") as fh:
-                fh.write('127.0.0.1:{0}\n'.format(port))
-                fh.close()
-            print "MP 127.0.0.1:{0}".format(port)
-	    nMalicious=nMalicious-1
-	    nPeersTeam+=1
-            runPeer(False, True, True)
+        r = random.randint(1,100)
+        print "randon" + str(r) + "P_MP= " + str(P_MP) + "P_WIP" + str(P_WIP)
+        if r <= P_MP:
+            print "nMalicious= " + str(nMalicious)
+            if nMalicious>0:
+                with open("malicious.txt", "a") as fh:
+                    fh.write('127.0.0.1:{0}\n'.format(port))
+                    fh.close()
+                    print "MP 127.0.0.1:{0}".format(port)
+	            nMalicious-=1
+	            nPeersTeam+=1
+                    runPeer(False, True, True)
         else:
             with open("regular.txt", "a") as fh:
                 fh.write('127.0.0.1:{0}\n'.format(port))
@@ -225,10 +227,10 @@ def main(args):
             nTrusted = int(arg)
         elif opt == "-m":
             nMalicious = int(arg)
+        elif opt == "-z":
+	    sizeTeam = int(arg)
         elif opt == "-s":
             ds = True
-	elif opt == "-z":
-	    sizeTeam = int(arg)
         elif opt == "-c":
             try:
                 os.remove("trusted.txt")
