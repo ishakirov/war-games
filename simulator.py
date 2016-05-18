@@ -7,6 +7,7 @@ import random
 import shlex, subprocess
 import re
 import platform
+from color import Color
 
 processes = []
 lifeTimes = {}
@@ -56,10 +57,10 @@ def killall():
 
 def runStream():
     if platform.system() == "Linux":
-        run("vlc Big_Buck_Bunny_small.ogv --sout \"#duplicate{dst=standard{mux=ogg,dst=:8080/test.ogg,access=http}}\"")
+        run("cvlc Big_Buck_Bunny_small.ogv --sout \"#duplicate{dst=standard{mux=ogg,dst=:8080/test.ogg,access=http}}\"")
     else:
         run("/Applications/VLC.app/Contents/MacOS/VLC Big_Buck_Bunny_small.ogv --sout \"#duplicate{dst=standard{mux=ogg,dst=,access=http}}\"")
-    time.sleep(2)
+    time.sleep(1)
 
 def runSplitter(ds = False):
     prefix = ""
@@ -128,7 +129,7 @@ def initializeTeam(nPeers, nInitialTrusted):
     print "running peers"
 
     for _ in range(nInitialTrusted):
-        print "In: TP 127.0.0.1:{0}".format(port)
+        print Color.green, "In: ", Color.none, "TP 127.0.0.1:{0}".format(port)
         with open("trusted.txt", "a") as fh:
             fh.write('127.0.0.1:{0}\n'.format(port))
             fh.close()
@@ -137,8 +138,8 @@ def initializeTeam(nPeers, nInitialTrusted):
 
 
     for _ in range(nPeers):
-        print "In: WIP 127.0.0.1:{0}".format(port)
-        runPeer(False, False, True)
+       print Color.green, "In: ", Color.none, "WIP 127.0.0.1:{0}".format(port)
+       runPeer(False, False, True)
 
 def churn():
     global trusted_peers, P_IN, nTrusted, nPeersTeam, TIMER, nMalicious
@@ -151,7 +152,7 @@ def churn():
         r = random.randint(1,100)
         #if not checkForTrusted():
         if r <= P_IN and nTrusted>0:
-            print "In: TP 127.0.0.1:{0}".format(port)
+            print Color.green, "In: ", Color.none, "TP 127.0.0.1:{0}".format(port)
             with open("trusted.txt", "a") as fh:
                 fh.write('127.0.0.1:{0}\n'.format(port))
                 fh.close()
@@ -162,7 +163,7 @@ def churn():
 
         for p,t in lifeTimes.items():
             if t[0] <= TIMER:
-                print "Out: "+ t[2] + " " + t[1]
+                print Color.red, "Out:", Color.none, t[2], t[1]
                 p.kill()
                 del lifeTimes[p]
  
@@ -187,7 +188,7 @@ def addRegularOrMaliciousPeer():
                 with open("malicious.txt", "a") as fh:
                     fh.write('127.0.0.1:{0}\n'.format(port))
                     fh.close()
-                print "In: MP 127.0.0.1:{0}".format(port)
+                print Color.green, "In: ", Color.none, "MP 127.0.0.1:{0}".format(port)
 	        nMalicious-=1
 	        nPeersTeam+=1
                 runPeer(False, True, True)
@@ -195,7 +196,7 @@ def addRegularOrMaliciousPeer():
             with open("regular.txt", "a") as fh:
                 fh.write('127.0.0.1:{0}\n'.format(port))
                 fh.close()
-            print "In: WIP 127.0.0.1:{0}".format(port)
+            print Color.green, "In: ", Color.none, "WIP 127.0.0.1:{0}".format(port)
 	    nPeersTeam+=1
             runPeer(False, False, True)
     else:
@@ -287,7 +288,7 @@ def main(args):
             print("temp files removed")
             sys.exit()
 
-    print 'running with {0} peers ({1} trusted)'.format(nPeers, nInitialTrusted)
+    print 'running initial team with {0} peers ({1} trusted)'.format(nPeers, nInitialTrusted)
 
     nPeers = nPeers - nInitialTrusted #- nMalicious # for more friendly user input
     nPeersTeam = nPeers + nInitialTrusted
@@ -296,11 +297,19 @@ def main(args):
 
     initializeTeam(nPeers, nInitialTrusted)
 
-    time.sleep(10) # time for all peers buffering
+    print "Team Initialized"
+    
+    for i in xrange(9,-1,-1):
+        print "Wait for buffering",
+        print str(i)+'\r',
+        time.sleep(1)
+        sys.stdout.flush()
+    
+    #time.sleep(10) # time for all peers buffering
     saveLastRound()
     print "LAST_ROUND_NUMBER", LAST_ROUND_NUMBER
 
-    print "simulating churn"
+    print "----- Simulating Churn -----"
     churn()
 
     #time.sleep(60)

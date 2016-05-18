@@ -285,11 +285,10 @@ class Peer():
     
         peer.DisconnectFromTheSplitter()
         peer.BufferData()
-        #threading.Thread(target=self.console, args=(peer,)).start()
-        #peer.Run()
+
         _print_("RUN")
-        threading.Thread(target=peer.Run, args=()).start() #it doesn't work properly. It would be running in a different Thread.
-        #self.console(peer)
+        threading.Thread(target=peer.Run, args=()).start()
+        self.console(peer)
 
                 
         
