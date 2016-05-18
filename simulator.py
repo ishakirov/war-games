@@ -9,6 +9,9 @@ import re
 import platform
 
 processes = []
+lifeTimes = {}
+
+TIMER=0
 DEVNULL = open(os.devnull, 'wb')
 SEED = 12345678
 
@@ -25,8 +28,8 @@ Q = 500
 
 trusted_peers = []
 
-P_IN = 100
-P_OUT = 100
+P_IN = 50
+P_OUT = 50
 P_WIP = 50
 P_MP = 100 - P_WIP
 
@@ -44,6 +47,8 @@ def usage():
 def run(runStr, out = DEVNULL):
     proc = subprocess.Popen(shlex.split(runStr), stdout=out, stderr=out)
     processes.append(proc)
+    return proc
+            
 
 def killall():
     for proc in processes:
@@ -64,23 +69,30 @@ def runSplitter(ds = False):
     time.sleep(0.25)
 
 def runPeer(trusted = False, malicious = False, ds = False):
-    global port
-    global playerPort
+    global port, playerPort, DEVNULL
     #run peer
-    #strpeds = ""
-    #if ds: strpeds = "--strpeds"
     runStr = "./peer.py --splitter_port 8001 --use_localhost --port {0} --player_port {1}".format(port, playerPort)
-    #if trusted:
-        #runStr += " --trusted"
+
+    peertype = "WIP"
+    if trusted:
+        peertype = "TP"
     if malicious:
+        peertype = "MP"
         runStr += " --malicious --persistent"
     if not malicious:
          runStr += " --strpeds_log ./strpe-testing/peer{0}.log".format(port)
+
     run(runStr, open("strpe-testing/peer{0}.out".format(port), "w"))
     time.sleep(0.5)
+
     #run netcat
-    run("nc 127.0.0.1 {0}".format(playerPort))
+    proc = run("nc 127.0.0.1 {0}".format(playerPort))
+    #Weibull distribution in this random number:
+    lifeTimes[proc]= (random.randint(100,200), "127.0.0.1:"+str(port), peertype)
+
     port, playerPort = port + 1, playerPort + 1
+
+   
 
 def check(x):
     with open("./strpe-testing/splitter.log") as fh:
@@ -91,7 +103,7 @@ def check(x):
             return True
     return False
 
-def initializeTeam(nPeers, nTrusted):
+def initializeTeam(nPeers, nInitialTrusted):
     global trusted_peers
 
     print "running stream"
@@ -115,8 +127,8 @@ def initializeTeam(nPeers, nTrusted):
 
     print "running peers"
 
-    for _ in range(nTrusted):
-        print "TP 127.0.0.1:{0}".format(port)
+    for _ in range(nInitialTrusted):
+        print "In: TP 127.0.0.1:{0}".format(port)
         with open("trusted.txt", "a") as fh:
             fh.write('127.0.0.1:{0}\n'.format(port))
             fh.close()
@@ -125,25 +137,49 @@ def initializeTeam(nPeers, nTrusted):
 
 
     for _ in range(nPeers):
-        print "WIP 127.0.0.1:{0}".format(port)
+        print "In: WIP 127.0.0.1:{0}".format(port)
         runPeer(False, False, True)
 
 def churn():
-    global trusted_peers
+    global trusted_peers, P_IN, nTrusted, nPeersTeam, TIMER, nMalicious
 
     while checkForRounds():
-        addRegularOrMaliciousPeer()
-        if not checkForTrusted():
-            print "TP 127.0.0.1:{0}".format(port)
+        r = random.randint(1,100)
+        if r <= P_IN:
+            addRegularOrMaliciousPeer()
+
+        r = random.randint(1,100)
+        #if not checkForTrusted():
+        if r <= P_IN and nTrusted>0:
+            print "In: TP 127.0.0.1:{0}".format(port)
             with open("trusted.txt", "a") as fh:
                 fh.write('127.0.0.1:{0}\n'.format(port))
                 fh.close()
             trusted_peers.append('127.0.0.1:{0}'.format(port))
+            nTrusted-=1
+            nPeersTeam+=1
             runPeer(True, False, True)
+
+        for p,t in lifeTimes.items():
+            if t[0] <= TIMER:
+                print "Out: "+ t[2] + " " + t[1]
+                p.kill()
+                del lifeTimes[p]
+ 
+                if t[2] == "TP":
+                    nTrusted+=1
+
+                if t[2] == "MP":
+                    nMalicious+=1
+
+                nPeersTeam-=1
+        
+        TIMER+=1
+        #print "Timer: "+ str(TIMER)
         time.sleep(0.5)
 
 def addRegularOrMaliciousPeer():
-    global nMalicious, nPeersTeam, P_MP, P_WIP, iteration
+    global nMalicious, nPeersTeam, P_MP, P_WIP, iteration, nTrusted
     if sizeTeam > nPeersTeam:
         r = random.randint(1,100)
         if r <= P_MP:
@@ -151,15 +187,15 @@ def addRegularOrMaliciousPeer():
                 with open("malicious.txt", "a") as fh:
                     fh.write('127.0.0.1:{0}\n'.format(port))
                     fh.close()
-                    print "MP 127.0.0.1:{0}".format(port)
-	            nMalicious-=1
-	            nPeersTeam+=1
-                    runPeer(False, True, True)
+                print "In: MP 127.0.0.1:{0}".format(port)
+	        nMalicious-=1
+	        nPeersTeam+=1
+                runPeer(False, True, True)
         else:
             with open("regular.txt", "a") as fh:
                 fh.write('127.0.0.1:{0}\n'.format(port))
                 fh.close()
-            print "WIP 127.0.0.1:{0}".format(port)
+            print "In: WIP 127.0.0.1:{0}".format(port)
 	    nPeersTeam+=1
             runPeer(False, False, True)
     else:
@@ -214,22 +250,24 @@ def main(args):
     random.seed(SEED)
 
     try:
-        opts, args = getopt.getopt(args, "n:t:m:z:s:c")
+        opts, args = getopt.getopt(args, "n:t:it:m:z:s:c")
     except getopt.GetoptError:
         usage()
         sys.exit(2)
 
     ds = False
     global nPeers, nTrusted, nMalicious, sizeTeam, nPeersTeam
-    nPeers = 10
-    nTrusted = 1
+    nPeers = 2
+    nTrusted = nInitialTrusted = 1
     nMalicious = 0
-    sizeTeam= nPeersTeam = 10
+    sizeTeam= nPeersTeam = 2
     for opt, arg in opts:
         if opt == "-n":
             nPeers = int(arg)
         elif opt == "-t":
             nTrusted = int(arg)
+        elif opt == "-it":
+            nInitialTrusted = int(arg)
         elif opt == "-m":
             nMalicious = int(arg)
         elif opt == "-z":
@@ -249,13 +287,14 @@ def main(args):
             print("temp files removed")
             sys.exit()
 
-    print 'running with {0} peers ({1} trusted and {2} mal)'.format(nPeers, nTrusted, nMalicious)
+    print 'running with {0} peers ({1} trusted)'.format(nPeers, nInitialTrusted)
 
-    nPeers = nPeers - nTrusted #- nMalicious # for more friendly user input
-    nPeersTeam = nPeers + nTrusted
+    nPeers = nPeers - nInitialTrusted #- nMalicious # for more friendly user input
+    nPeersTeam = nPeers + nInitialTrusted
+    nTrusted = nTrusted - nInitialTrusted
     checkdir()
 
-    initializeTeam(nPeers, nTrusted)
+    initializeTeam(nPeers, nInitialTrusted)
 
     time.sleep(10) # time for all peers buffering
     saveLastRound()
@@ -266,7 +305,7 @@ def main(args):
 
     #time.sleep(60)
     print "******************* finish! *******************"
-
+    print "Q= " + str(Q) + " TIMER= " + str(TIMER) + " LRN= " + str(LAST_ROUND_NUMBER)
     killall()
     return 0
 
