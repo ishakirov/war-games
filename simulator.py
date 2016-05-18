@@ -28,6 +28,7 @@ LAST_ROUND_NUMBER = 0
 Q = 500
 
 trusted_peers = []
+mp_expelled_by_tps = []
 
 P_IN = 50
 P_OUT = 50
@@ -89,7 +90,7 @@ def runPeer(trusted = False, malicious = False, ds = False):
     #run netcat
     proc = run("nc 127.0.0.1 {0}".format(playerPort))
     #Weibull distribution in this random number:
-    lifeTimes[proc]= (random.randint(100,200), "127.0.0.1:"+str(port), peertype)
+    lifeTimes[proc]= (random.randint(400,600), "127.0.0.1:"+str(port), peertype)
 
     port, playerPort = port + 1, playerPort + 1
 
@@ -129,7 +130,7 @@ def initializeTeam(nPeers, nInitialTrusted):
     print "running peers"
 
     for _ in range(nInitialTrusted):
-        print Color.green, "In: ", Color.none, "TP 127.0.0.1:{0}".format(port)
+        print Color.green, "In: <--", Color.none, "TP 127.0.0.1:{0}".format(port)
         with open("trusted.txt", "a") as fh:
             fh.write('127.0.0.1:{0}\n'.format(port))
             fh.close()
@@ -138,7 +139,7 @@ def initializeTeam(nPeers, nInitialTrusted):
 
 
     for _ in range(nPeers):
-       print Color.green, "In: ", Color.none, "WIP 127.0.0.1:{0}".format(port)
+       print Color.green, "In: <--", Color.none, "WIP 127.0.0.1:{0}".format(port)
        runPeer(False, False, True)
 
 def churn():
@@ -150,9 +151,9 @@ def churn():
             addRegularOrMaliciousPeer()
 
         r = random.randint(1,100)
-        #if not checkForTrusted():
+        
         if r <= P_IN and nTrusted>0:
-            print Color.green, "In: ", Color.none, "TP 127.0.0.1:{0}".format(port)
+            print Color.green, "In: <--", Color.none, "TP 127.0.0.1:{0}".format(port)
             with open("trusted.txt", "a") as fh:
                 fh.write('127.0.0.1:{0}\n'.format(port))
                 fh.close()
@@ -163,7 +164,7 @@ def churn():
 
         for p,t in lifeTimes.items():
             if t[0] <= TIMER:
-                print Color.red, "Out:", Color.none, t[2], t[1]
+                print Color.red, "Out:-->", Color.none, t[2], t[1]
                 p.kill()
                 del lifeTimes[p]
  
@@ -174,7 +175,12 @@ def churn():
                     nMalicious+=1
 
                 nPeersTeam-=1
-        
+
+        anyMPexpelled = checkForMaliciousExpelled()
+        if anyMPexpelled != None:
+            print Color.red, "Out:-->", anyMPexpelled, Color.none
+            nMalicious+=1
+	    nPeersTeam-=1
         TIMER+=1
         #print "Timer: "+ str(TIMER)
         time.sleep(0.5)
@@ -188,7 +194,7 @@ def addRegularOrMaliciousPeer():
                 with open("malicious.txt", "a") as fh:
                     fh.write('127.0.0.1:{0}\n'.format(port))
                     fh.close()
-                print Color.green, "In: ", Color.none, "MP 127.0.0.1:{0}".format(port)
+                print Color.green, "In: <--", Color.none, "MP 127.0.0.1:{0}".format(port)
 	        nMalicious-=1
 	        nPeersTeam+=1
                 runPeer(False, True, True)
@@ -196,16 +202,16 @@ def addRegularOrMaliciousPeer():
             with open("regular.txt", "a") as fh:
                 fh.write('127.0.0.1:{0}\n'.format(port))
                 fh.close()
-            print Color.green, "In: ", Color.none, "WIP 127.0.0.1:{0}".format(port)
+            print Color.green, "In: <--", Color.none, "WIP 127.0.0.1:{0}".format(port)
 	    nPeersTeam+=1
             runPeer(False, False, True)
-    else:
-	progress ="Round "+ str(currentRound-LAST_ROUND_NUMBER)+"/"+str(Q)+" Size "+str(sizeTeam)+"/"+str(nPeersTeam)
-        iteration += 1
-        sys.stdout.flush()
-        print progress,
-        print "#"*(iteration%5),
-        print '\r'*(len(progress)+iteration),
+
+    progress ="Round "+ str(currentRound-LAST_ROUND_NUMBER)+"/"+str(Q)+" Size "+str(sizeTeam)+"/"+str(nPeersTeam)
+    iteration += 1
+    sys.stdout.flush()
+    print progress,
+    print "#"*(iteration%5),
+    print '\r'*(len(progress)+iteration),
 
 def checkForTrusted():
     with open("./strpe-testing/splitter.log") as fh:
@@ -224,6 +230,15 @@ def checkForTrusted():
 
     return True
 
+def checkForMaliciousExpelled():
+    global mp_expelled_by_tps
+    with open("./strpe-testing/splitter.log") as fh:
+        for line in fh:
+            result = re.match("(\d*)\tbad peer ([0-9]+(?:\.[0-9]+){3}:[0-9]+)\((.*?)\)", line)
+            if result != None and result.group(2) not in mp_expelled_by_tps:
+                mp_expelled_by_tps.append(result.group(2))
+                return result.group(2) +" ("+ result.group(3)+")"
+    return None
 
 def saveLastRound():
     global LAST_ROUND_NUMBER
@@ -312,7 +327,6 @@ def main(args):
     print "----- Simulating Churn -----"
     churn()
 
-    #time.sleep(60)
     print "******************* finish! *******************"
     print "Q= " + str(Q) + " TIMER= " + str(TIMER) + " LRN= " + str(LAST_ROUND_NUMBER)
     killall()
