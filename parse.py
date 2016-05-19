@@ -20,15 +20,16 @@ def calcAverageBufferCorrectnes(roundTime):
     NN = 0
     for f in fileList:
         info = calcAverageInFile(f, roundTime)
-        if (info[0] != None):
+        if (info[0] != None and info[1] != None):
             correctnesSum += info[0]
             fillingSum += info[1]
             NN += 1
-        else:
-            NN = 1
 
+    if NN == 0:
+        return (None,None)
+    
     return (correctnesSum / NN, fillingSum / NN)
-
+    
 def calcAverageInFile(inFile, roundTime):
     regex_correctness = re.compile("(\d*.\d*)\tbuffer\scorrectnes\s(\d*.\d*)")
     regex_filling = re.compile("(\d*.\d*)\tbuffer\sfilling\s(\d*.\d*)")
@@ -92,7 +93,8 @@ def main(args):
                     roundOffset = currentRound
                 if startParse:
                     info = calcAverageBufferCorrectnes(ts)
-                    print "{0}\t{1}\t{2}\t{3}\t{4}\t{5}\t{6}".format(currentRound - roundOffset + 1, len(peers) - malicious - trusted, malicious, trusted, currentTeamSize, info[0], info[1])
+                    if (info[0] != None and info[1]!=None):
+                        print "{0}\t{1}\t{2}\t{3}\t{4}\t{5}\t{6}".format(currentRound - roundOffset + 1, len(peers) - malicious - trusted, malicious, trusted, currentTeamSize, info[0], info[1])
     return 0
 
 if __name__ == "__main__":
