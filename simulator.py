@@ -25,7 +25,7 @@ currentRound = 0
 iteration=0
 
 LAST_ROUND_NUMBER = 0
-Q = 500
+Q = 1000
 
 trusted_peers = []
 mp_expelled_by_tps = []
@@ -61,7 +61,7 @@ def runStream():
         run("cvlc Big_Buck_Bunny_small.ogv --sout \"#duplicate{dst=standard{mux=ogg,dst=:8080/test.ogg,access=http}}\"")
     else:
         run("/Applications/VLC.app/Contents/MacOS/VLC Big_Buck_Bunny_small.ogv --sout \"#duplicate{dst=standard{mux=ogg,dst=,access=http}}\"")
-    time.sleep(1)
+    time.sleep(0.5)
 
 def runSplitter(ds = False):
     prefix = ""
@@ -71,7 +71,7 @@ def runSplitter(ds = False):
     time.sleep(0.25)
 
 def runPeer(trusted = False, malicious = False, ds = False):
-    global port, playerPort, DEVNULL
+    global port, playerPort
     #run peer
     runStr = "./peer.py --splitter_port 8001 --use_localhost --port {0} --player_port {1}".format(port, playerPort)
 
@@ -84,13 +84,13 @@ def runPeer(trusted = False, malicious = False, ds = False):
     if not malicious:
          runStr += " --strpeds_log ./strpe-testing/peer{0}.log".format(port)
 
-    run(runStr, open("strpe-testing/peer{0}.out".format(port), "w"))
+    run(runStr, open("./strpe-testing/peer{0}.out".format(port), "w"))
     time.sleep(0.5)
 
     #run netcat
     proc = run("nc 127.0.0.1 {0}".format(playerPort))
     #Weibull distribution in this random number:
-    lifeTimes[proc]= (random.randint(400,600), "127.0.0.1:"+str(port), peertype)
+    lifeTimes[proc]= (random.randint(500,800), "127.0.0.1:"+str(port), peertype)
 
     port, playerPort = port + 1, playerPort + 1
 
@@ -175,12 +175,13 @@ def churn():
                     nMalicious+=1
 
                 nPeersTeam-=1
-
+        
         anyMPexpelled = checkForMaliciousExpelled()
         if anyMPexpelled != None:
-            print Color.red, "Out:-->", anyMPexpelled, Color.none
+            print Color.red, "Out: --> MP", anyMPexpelled, Color.none
             nMalicious+=1
 	    nPeersTeam-=1
+        
         TIMER+=1
         #print "Timer: "+ str(TIMER)
         time.sleep(0.5)

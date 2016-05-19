@@ -288,7 +288,7 @@ class Peer():
 
         _print_("RUN")
         threading.Thread(target=peer.Run, args=()).start()
-        self.console(peer)
+        #self.console(peer)
 
                 
         
