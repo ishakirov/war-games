@@ -32,8 +32,8 @@ except ImportError:
 from color import Color
 from _print_ import _print_
 sys.path.append('lib/p2psp/bin/')
-from libp2psp import PeerDBS, MonitorDBS
-from  malicious_peer import MaliciousPeer
+from libp2psp import PeerDBS, MonitorDBS, PeerSTRPEDS
+from malicious_peer import MaliciousPeer
 
 # }}}
 
@@ -59,13 +59,8 @@ class Peer():
         peer.sendto_counter = 0
         last_sendto_counter = 0
         last_recvfrom_counter = peer.recvfrom_counter
-        f = open("funciona.txt", "w")
         
         while peer.IsPlayerAlive():
-            #os.system('play --no-show-progress --null --channels 1 synth %s sine %f' % ( a, b))
-            f.write("a\n")
-            f.flush()
-            time.sleep(1)
             kbps_expected_recv = ((peer.GetPlayedChunk() - last_chunk_number) * peer.chunk_size * 8) / 1000
             last_chunk_number = peer.GetPlayedChunk()
             kbps_recvfrom = ((peer.recvfrom_counter - last_recvfrom_counter) * peer.chunk_size * 8) / 1000
@@ -80,23 +75,24 @@ class Peer():
             else:
                 nice = 0.0
             _print_('|', end=Color.none)
+            
             if kbps_expected_recv < kbps_recvfrom:
                 sys.stdout.write(Color.red)
             elif kbps_expected_recv > kbps_recvfrom:
                 sys.stdout.write(Color.green)
+                
             print(repr(int(kbps_expected_recv)).rjust(10), end=Color.none)
             print(repr(int(kbps_recvfrom)).rjust(10), end=' | ')
-            #print(("{:.1f}".format(nice)).rjust(6), end=' | ')
-            #sys.stdout.write(Color.none)
+            
             if kbps_expected_sent > kbps_sendto:
                 sys.stdout.write(Color.red)
             elif kbps_expected_sent < kbps_sendto:
                 sys.stdout.write(Color.green)
+                
             print(repr(int(kbps_sendto)).rjust(10), end=Color.none)
             print(repr(int(kbps_expected_sent)).rjust(10), end=' | ')
-            #sys.stdout.write(Color.none)
-            #print(repr(nice).ljust(1)[:6], end=' ')
             print(len(peer.GetPeerList()), end=' ')
+            
             counter = 0
             for p in peer.GetPeerList():
                 if (counter < 5):
@@ -125,7 +121,7 @@ class Peer():
         else:
             print("release mode")
             
-        peer = PeerDBS() #remove!!!
+        peer = PeerSTRPEDS()
         parser = argparse.ArgumentParser(description='This is the peer node of a P2PSP team.')
         
         parser.add_argument('--enable_chunk_loss', help='Forces a lost of chunks')
@@ -144,7 +140,7 @@ class Peer():
         parser.add_argument('--trusted', action="store_true", help='Forces the peer to send hashes of chunks to splitter')
         parser.add_argument('--checkall', action="store_true", help='Forces the peer to send hashes of every chunks to splitter (works only with trusted option)')
         parser.add_argument('--strpeds', action="store_true", help='Enables STrPe-DS')
-        parser.add_argument('--strpe_log', help='Logging STrPe & STrPe-DS specific data to file.')
+        parser.add_argument('--strpeds_log', help='Logging STrPe & STrPe-DS specific data to file.')
         parser.add_argument('--show_buffer', action="store_true", help='Shows the status of the buffer of chunks.')
         parser.add_argument('--monitor', action="store_true", help='Enables monitor')
         try:
@@ -156,14 +152,17 @@ class Peer():
 
          # {{{ Args handling and object instantiation
         if args.malicious:
-            peer = MaliciousPeer(PeerDBS())
+            peer = MaliciousPeer(PeerSTRPEDS())
             if args.persistent:
                 peer.setPersistentAttack(True)
         elif args.monitor:
-            peer = MonitorDBS()
+            #peer = MonitorDBS()
+            print("PeerSTRPEDS Initialized")
+            #peer = PeerSTRPEDS()
         else:
-            print("nothin")
+            print("Nothing")
             #peer = PeerDBS() #change for strpeds
+            #peer = PeerSTRPEDS()
             
         if args.splitter_addr:
             peer.splitter_addr = socket.gethostbyname(args.splitter_addr)
@@ -215,7 +214,8 @@ class Peer():
             peer.ListenToTheTeam()
             peer.ReceiveTheListOfPeers()
             _print_("List of peers received")
-
+            
+            
             # After receiving the list of peers, the peer can check
             # whether is a monitor peer or not (only the first
             # arriving peers are monitors)
@@ -233,7 +233,7 @@ class Peer():
             if args.strpeds:
                 peer = Peer_StrpeDs(peer)
                 peer.receive_dsa_key()
-
+            
             if args.malicious and not args.strpeds: # workaround for malicous strpeds peer
                 peer = MaliciousPeer(peer)
                 if args.persistent:
@@ -242,9 +242,10 @@ class Peer():
                     peer.setOnOffAttack(True, int(args.on_off_ratio))
                 if args.selective:
                     peer.setSelectiveAttack(True, args.selective)
-
-            if args.malicious and args.strpeds:
-                peer = Peer_StrpeDsMalicious(peer)
+            '''
+            if args.malicious:
+                #peer = Peer_StrpeDsMalicious(peer)
+                peer.firshMainTarget()
                 if args.persistent:
                     peer.setPersistentAttack(True)
                 if args.on_off_ratio:
@@ -253,16 +254,21 @@ class Peer():
                     peer.setSelectiveAttack(True, args.selective)
                 if args.bad_mouth:
                     peer.setBadMouthAttack(True, args.bad_mouth)
-
+            '''
             if args.trusted:
                 peer = TrustedPeer(peer)
                 if args.checkall:
                     peer.setCheckAll(True)
-
-            if args.strpe_log != None:
-                peer.LOGGING = True
-                peer.LOG_FILE = open(args.strpe_log, 'w', 0)
             '''
+            if args.strpeds_log != None:
+                peer.SetLogging(True)
+                peer.SetLogFile(args.strpeds_log)
+
+            print(Color.red, "Receiving DSA Key", Color.none)
+            peer.ReceiveDsaKey()
+            
+
+            
             # }}}
         else:
             # {{{ IP multicast mode
@@ -279,10 +285,10 @@ class Peer():
     
         peer.DisconnectFromTheSplitter()
         peer.BufferData()
-        #threading.Thread(target=self.console, args=(peer,)).start()
-        #peer.Run()
-        threading.Thread(target=peer.Run, args=()).start() #it doesn't work properly. It would be running in a different Thread.
-        self.console(peer)
+
+        _print_("RUN")
+        threading.Thread(target=peer.Run, args=()).start()
+        #self.console(peer)
 
                 
         
