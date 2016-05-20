@@ -23,6 +23,6 @@ set tics scale 1
 
 f1=filename
 
-plot  f1 u 1:7 w lp title columnheader(7) ls 1
+plot  f1 u 1:7 w lp title columnheader(7) ls 1, 0.5
 
 pause -1

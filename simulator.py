@@ -25,7 +25,7 @@ currentRound = 0
 iteration=0
 
 LAST_ROUND_NUMBER = 0
-Q = 1000
+Q = 500
 
 trusted_peers = []
 mp_expelled_by_tps = []
@@ -85,7 +85,7 @@ def runPeer(trusted = False, malicious = False, ds = False):
          runStr += " --strpeds_log ./strpe-testing/peer{0}.log".format(port)
 
     run(runStr, open("./strpe-testing/peer{0}.out".format(port), "w"))
-    time.sleep(0.5)
+    time.sleep(0.25)
 
     #run netcat
     proc = run("nc 127.0.0.1 {0}".format(playerPort))
@@ -150,8 +150,7 @@ def churn():
         if r <= P_IN:
             addRegularOrMaliciousPeer()
 
-        r = random.randint(1,100)
-        
+        r = random.randint(1,100)    
         if r <= P_IN and nTrusted>0:
             print Color.green, "In: <--", Color.none, "TP 127.0.0.1:{0}".format(port)
             with open("trusted.txt", "a") as fh:
@@ -184,7 +183,7 @@ def churn():
         
         TIMER+=1
         #print "Timer: "+ str(TIMER)
-        time.sleep(0.5)
+        #time.sleep(0.5)
 
 def addRegularOrMaliciousPeer():
     global nMalicious, nPeersTeam, P_MP, P_WIP, iteration, nTrusted
