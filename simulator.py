@@ -27,7 +27,7 @@ LAST_ROUND_NUMBER = 0
 Q = 500
 
 INIT_TIME = 0
-TOTAL_TIME = 0
+TOTAL_TIME = 60
 
 trusted_peers = []
 mp_expelled_by_tps = []
@@ -317,7 +317,7 @@ def main(args):
 
     print "Team Initialized"
     
-    for i in xrange(30,0,-1):
+    for i in xrange(10,0,-1):
         print "Wait for buffering",
         print str(i)+'  \r',
         sys.stdout.flush()
@@ -331,10 +331,21 @@ def main(args):
     print "----- Simulating Churn -----"
     churn()
 
-    print "******************* finish! *******************"
+    print "******************* End of Simulation *******************"
     currentRound = findLastRound()
     print "Rounds= " + str(currentRound-LAST_ROUND_NUMBER) + " TIME= " + str(TOTAL_TIME) + " LRN= " + str(LAST_ROUND_NUMBER)
     killall()
+
+    print "******************* Parsing Results  *******************"
+    path = "./strpe-testing/sample.dat"
+    print "Target file: "+path
+    process = run("./parse.py -r "+str(LAST_ROUND_NUMBER), open(path,"w"))
+    process.wait()
+    print "Done!"
+
+    print "******************* Plotting Results  *******************"
+    run("gnuplot -e \"filename='"+path+"'\" plot_team.gp")
+    run("gnuplot -e \"filename='"+path+"'\" plot_buffer.gp")
     return 0
 
 if __name__ == "__main__":
