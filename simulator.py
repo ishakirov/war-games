@@ -22,10 +22,12 @@ port = 60000
 playerPort = 61000
 
 currentRound = 0
-iteration=0
 
 LAST_ROUND_NUMBER = 0
 Q = 500
+
+INIT_TIME = 0
+TOTAL_TIME = 0
 
 trusted_peers = []
 mp_expelled_by_tps = []
@@ -71,7 +73,7 @@ def runSplitter(ds = False):
     time.sleep(0.25)
 
 def runPeer(trusted = False, malicious = False, ds = False):
-    global port, playerPort
+    global port, playerPort, TOTAL_TIME
     #run peer
     runStr = "./peer.py --splitter_port 8001 --use_localhost --port {0} --player_port {1}".format(port, playerPort)
 
@@ -90,7 +92,7 @@ def runPeer(trusted = False, malicious = False, ds = False):
     #run netcat
     proc = run("nc 127.0.0.1 {0}".format(playerPort))
     #Weibull distribution in this random number:
-    lifeTimes[proc]= (random.randint(500,800), "127.0.0.1:"+str(port), peertype)
+    lifeTimes[proc]= (random.randint(TOTAL_TIME-(TOTAL_TIME/8),TOTAL_TIME+(TOTAL_TIME/4)), "127.0.0.1:"+str(port), peertype)
 
     port, playerPort = port + 1, playerPort + 1
 
@@ -143,9 +145,10 @@ def initializeTeam(nPeers, nInitialTrusted):
        runPeer(False, False, True)
 
 def churn():
-    global trusted_peers, P_IN, nTrusted, nPeersTeam, TIMER, nMalicious
+    global trusted_peers, P_IN, nTrusted, nPeersTeam, INIT_TIME, nMalicious, TOTAL_TIME
 
-    while checkForRounds():
+    #while checkForRounds():
+    while TOTAL_TIME > (time.time()-INIT_TIME):
         r = random.randint(1,100)
         if r <= P_IN:
             addRegularOrMaliciousPeer()
@@ -162,17 +165,15 @@ def churn():
             runPeer(True, False, True)
 
         for p,t in lifeTimes.items():
-            if t[0] <= TIMER:
+            if t[0] <= (time.time()-INIT_TIME):
                 print Color.red, "Out:-->", Color.none, t[2], t[1]
                 p.kill()
                 del lifeTimes[p]
- 
                 if t[2] == "TP":
                     nTrusted+=1
 
                 if t[2] == "MP":
                     nMalicious+=1
-
                 nPeersTeam-=1
         
         anyMPexpelled = checkForMaliciousExpelled()
@@ -181,12 +182,11 @@ def churn():
             nMalicious+=1
 	    nPeersTeam-=1
         
-        TIMER+=1
         #print "Timer: "+ str(TIMER)
         #time.sleep(0.5)
 
 def addRegularOrMaliciousPeer():
-    global nMalicious, nPeersTeam, P_MP, P_WIP, iteration, nTrusted
+    global nMalicious, nPeersTeam, P_MP, P_WIP, iteration, nTrusted, TOTAL_TIME, currentRound
     if sizeTeam > nPeersTeam:
         r = random.randint(1,100)
         if r <= P_MP:
@@ -206,12 +206,13 @@ def addRegularOrMaliciousPeer():
 	    nPeersTeam+=1
             runPeer(False, False, True)
 
-    progress ="Round "+ str(currentRound-LAST_ROUND_NUMBER)+"/"+str(Q)+" Size "+str(sizeTeam)+"/"+str(nPeersTeam)
-    iteration += 1
+    currentRound = findLastRound()
+    progress ="Round "+ str(currentRound-LAST_ROUND_NUMBER)+" Size "+str(sizeTeam)+"/"+str(nPeersTeam)
     sys.stdout.flush()
     print progress,
-    print "#"*(iteration%5),
-    print '\r'*(len(progress)+iteration),
+    print str(int(time.time()-INIT_TIME))+"/"+str(TOTAL_TIME),
+    #print "#"*(iteration%5),
+    print '\r',
 
 def checkForTrusted():
     with open("./strpe-testing/splitter.log") as fh:
@@ -241,8 +242,9 @@ def checkForMaliciousExpelled():
     return None
 
 def saveLastRound():
-    global LAST_ROUND_NUMBER
+    global LAST_ROUND_NUMBER, INIT_TIME
     LAST_ROUND_NUMBER = findLastRound()
+    INIT_TIME = time.time()
 
 def findLastRound():
     global iteration
@@ -255,24 +257,23 @@ def findLastRound():
     return -1
 
 def checkForRounds():
-    global currentRound, iteration
+    global currentRound
     lastRound = findLastRound()
     if lastRound != currentRound:
         currentRound = lastRound
-        iteration = 0
     return currentRound - LAST_ROUND_NUMBER < Q
 
 def main(args):
     random.seed(SEED)
 
     try:
-        opts, args = getopt.getopt(args, "n:t:it:m:z:s:c")
+        opts, args = getopt.getopt(args, "n:t:it:m:z:s:d:c")
     except getopt.GetoptError:
         usage()
         sys.exit(2)
 
     ds = False
-    global nPeers, nTrusted, nMalicious, sizeTeam, nPeersTeam
+    global nPeers, nTrusted, nMalicious, sizeTeam, nPeersTeam, TOTAL_TIME
     nPeers = 2
     nTrusted = nInitialTrusted = 1
     nMalicious = 0
@@ -290,6 +291,8 @@ def main(args):
 	    sizeTeam = int(arg)
         elif opt == "-s":
             ds = True
+        elif opt == "-d":
+            TOTAL_TIME = int(arg)
         elif opt == "-c":
             try:
                 os.remove("trusted.txt")
@@ -314,11 +317,12 @@ def main(args):
 
     print "Team Initialized"
     
-    for i in xrange(9,-1,-1):
+    for i in xrange(30,0,-1):
         print "Wait for buffering",
-        print str(i)+'\r',
-        time.sleep(1)
+        print str(i)+'  \r',
         sys.stdout.flush()
+        time.sleep(1)
+        
     
     #time.sleep(10) # time for all peers buffering
     saveLastRound()
@@ -328,7 +332,8 @@ def main(args):
     churn()
 
     print "******************* finish! *******************"
-    print "Q= " + str(Q) + " TIMER= " + str(TIMER) + " LRN= " + str(LAST_ROUND_NUMBER)
+    currentRound = findLastRound()
+    print "Rounds= " + str(currentRound-LAST_ROUND_NUMBER) + " TIME= " + str(TOTAL_TIME) + " LRN= " + str(LAST_ROUND_NUMBER)
     killall()
     return 0
 
