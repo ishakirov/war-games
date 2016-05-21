@@ -27,7 +27,6 @@ def calcAverageBufferCorrectnes(roundTime):
 
     if NN == 0:
         return (None,None)
-    
     return (correctnesSum / NN, fillingSum / NN)
     
 def calcAverageInFile(inFile, roundTime):
@@ -41,11 +40,11 @@ def calcAverageInFile(inFile, roundTime):
             result2 = regex_filling.match(line)
             if result != None and correctness == -1.0:
                 ts = float(result.group(1))
-                if ts >= roundTime:
+                if ts == roundTime:
                     correctness = float(result.group(2))
             if result2 != None and filling == -1.0:
                 ts = float(result2.group(1))
-                if ts >= roundTime:
+                if ts == roundTime:
                     filling = float(result2.group(2))
             if correctness != -1.0 and filling != -1.0:
                 return (correctness, filling)

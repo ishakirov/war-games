@@ -34,7 +34,7 @@ mp_expelled_by_tps = []
 
 P_IN = 50
 P_OUT = 50
-P_WIP = 50
+P_WIP = 10
 P_MP = 100 - P_WIP
 
 #TODO: Churn point 5. Weibull distribution.
@@ -108,7 +108,6 @@ def check(x):
     return False
 
 def initializeTeam(nPeers, nInitialTrusted):
-    global trusted_peers
 
     print "running stream"
     runStream()
@@ -138,7 +137,6 @@ def initializeTeam(nPeers, nInitialTrusted):
             fh.close()
         trusted_peers.append('127.0.0.1:{0}'.format(port))
         runPeer(True, False, True)
-
 
     for _ in range(nPeers):
        print Color.green, "In: <--", Color.none, "WIP 127.0.0.1:{0}".format(port)
@@ -267,7 +265,7 @@ def main(args):
     random.seed(SEED)
 
     try:
-        opts, args = getopt.getopt(args, "n:t:it:m:z:s:d:c")
+        opts, args = getopt.getopt(args, "n:t:i:m:z:s:d:c")
     except getopt.GetoptError:
         usage()
         sys.exit(2)
@@ -283,7 +281,7 @@ def main(args):
             nPeers = int(arg)
         elif opt == "-t":
             nTrusted = int(arg)
-        elif opt == "-it":
+        elif opt == "-i":
             nInitialTrusted = int(arg)
         elif opt == "-m":
             nMalicious = int(arg)
@@ -312,7 +310,7 @@ def main(args):
     nPeersTeam = nPeers + nInitialTrusted
     nTrusted = nTrusted - nInitialTrusted
     checkdir()
-
+    
     initializeTeam(nPeers, nInitialTrusted)
 
     print "Team Initialized"
