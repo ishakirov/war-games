@@ -20,7 +20,7 @@ from color import Color
 from _print_ import _print_
 
 sys.path.append('lib/p2psp/bin/')
-from libp2psp import PeerDBS, PeerSTRPEDS
+from libp2psp import PeerSTRPEDS
 
 def _p_(*args, **kwargs):
     """Colorize the output."""
@@ -89,6 +89,7 @@ class MaliciousPeer(PeerSTRPEDS):
         if self.IsCurrentMessageFromSplitter() or self.CheckMessage(bytes(message), sender):
             if self.IsCurrentMessageFromSplitter() and self.allAttackC:
                 self.refreshRegularPeers()
+                
             if self.IsControlMessage(bytes(message)) and message == 'B':
                 return self.HandleBadPeersRequest()
             else:
@@ -101,7 +102,6 @@ class MaliciousPeer(PeerSTRPEDS):
         # {{{ Now, receive and send.
         
         print (Color.red, "PROCESS MESSAGE Malicious python", Color.none)
-        print ("len(message) = ", len(message))
         if len(message) == self.message_size:
             # {{{ A video chunk has been received
             print("longitud: ", len(message))

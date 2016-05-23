@@ -332,6 +332,7 @@ def main(args):
     print "******************* End of Simulation *******************"
     currentRound = findLastRound()
     print "Rounds= " + str(currentRound-LAST_ROUND_NUMBER) + " TIME= " + str(TOTAL_TIME) + " LRN= " + str(LAST_ROUND_NUMBER)
+
     killall()
 
     print "******************* Parsing Results  *******************"
