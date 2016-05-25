@@ -68,7 +68,7 @@ def runStream():
 def runSplitter(ds = False):
     prefix = ""
     if ds: prefix = "ds"
-    run("./splitter.py --port 8001 --source_port 8080 --strpeds_log strpe-testing/splitter.log".format(prefix), open("strpe-testing/splitter.out", "w"))
+    run("./splitter.py --port 8001 --source_port 8080 --max_chunk_loss 1 --strpeds_log strpe-testing/splitter.log".format(prefix), open("strpe-testing/splitter.out", "w"))
 
     time.sleep(0.25)
 
@@ -197,9 +197,9 @@ def addRegularOrMaliciousPeer():
 	        nPeersTeam+=1
                 runPeer(False, True, True)
         else:
-            with open("regular.txt", "a") as fh:
-                fh.write('127.0.0.1:{0}\n'.format(port))
-                fh.close()
+            #with open("regular.txt", "a") as fh:
+            #    fh.write('127.0.0.1:{0}\n'.format(port))
+            #    fh.close()
             print Color.green, "In: <--", Color.none, "WIP 127.0.0.1:{0}".format(port)
 	    nPeersTeam+=1
             runPeer(False, False, True)

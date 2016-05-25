@@ -40,7 +40,7 @@ class MaliciousPeer(PeerSTRPEDS):
     numberChunksSendToMainTarget = 0
     allAttackC = False
     badMouthAttack = False
-    MPTR = 2
+    MPTR = 5
 
     def __init__(self, peer):
         # {{{
@@ -267,6 +267,7 @@ class MaliciousPeer(PeerSTRPEDS):
                     self.SendChunk(self.get_poisoned_chunk(self.receive_and_feed_previous), peer)
                     print("mainTarget attack:", peer)
                     self.sendto_counter += 1
+                    self.numberChunksSendToMainTarget += 1
                     print("mainTarget+=1 ({0})".format(self.numberChunksSendToMainTarget))
                 elif self.allAttackC:
                     if peer in self.regularPeers or peer == self.mainTarget:
