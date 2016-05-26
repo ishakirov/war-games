@@ -77,6 +77,7 @@ class Splitter():
         parser.add_argument('--port', help='Port to serve the peers. Default = "{}".')#.format(Splitter_IMS.PORT))
         parser.add_argument('--source_addr', help='IP address or hostname of the streaming server. Default = "{}".')#.format(Splitter_IMS.SOURCE_ADDR))
         parser.add_argument('--source_port', help='Port where the streaming server is listening. Default = {}.')#.format(Splitter_IMS.SOURCE_PORT))
+        parser.add_argument('--p_mpl', help='Probabity Malicious peer leaves. Default = {}.')
         #parser.add_argument("--IMS", action="store_true", help="Uses the IP multicast infrastructure, if available. IMS mode is incompatible with ACS, LRS, DIS and NTS modes.")
         #parser.add_argument("--NTS", action="store_true", help="Enables NAT traversal.")
         #parser.add_argument("--ACS", action="store_true", help="Enables Adaptive Chunk-rate.")
@@ -140,7 +141,11 @@ class Splitter():
         if args.strpeds_log != None:
             splitter.SetLogging(True)
             splitter.SetLogFile(args.strpeds_log)
-           
+
+        if args.p_mpl:
+            splitter.p_mpl = int(args.p_mpl)
+            _print_("P_MPL =", str(splitter.p_mpl))
+            
         # {{{ Run!
 
         splitter.Start()

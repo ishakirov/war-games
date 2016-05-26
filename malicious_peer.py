@@ -40,7 +40,7 @@ class MaliciousPeer(PeerSTRPEDS):
     numberChunksSendToMainTarget = 0
     allAttackC = False
     badMouthAttack = False
-    MPTR = 5
+    MPTR = 2
 
     def __init__(self, peer):
         # {{{
@@ -78,6 +78,7 @@ class MaliciousPeer(PeerSTRPEDS):
                 fh.write('{0}:{1}\n'.format(re[0], re[1]))
             fh.close()
 
+        self.numberChunksSendToMainTarget = 0
         return re
 
 
@@ -242,7 +243,7 @@ class MaliciousPeer(PeerSTRPEDS):
 
     def allAttack(self):
         print("ALL_ATTACK MODE")
-        self.allAttackC = True
+        #self.allAttackC = True
         del self.regularPeers[:]
         with open('regular.txt', 'a') as fh:
             fh.write('{0}:{1}\n'.format(self.mainTarget[0], self.mainTarget[1]))
@@ -269,23 +270,19 @@ class MaliciousPeer(PeerSTRPEDS):
                     self.sendto_counter += 1
                     self.numberChunksSendToMainTarget += 1
                     print("mainTarget+=1 ({0})".format(self.numberChunksSendToMainTarget))
-                elif self.allAttackC:
-                    if peer in self.regularPeers or peer == self.mainTarget:
-                        self.SendChunk(self.get_poisoned_chunk(self.receive_and_feed_previous), peer)
-                        print("allAttackC attack:", peer)
-		        #self.peer_list.remove(peer)
-                    else:
-                        self.SendChunk(self.receive_and_feed_previous, peer)
-                        print("No poisoned 1", peer)
                 elif peer == self.mainTarget and self.numberChunksSendToMainTarget >= self.MPTR:
                     self.allAttack()
                     self.SendChunk(self.get_poisoned_chunk(self.receive_and_feed_previous), peer)
                     print("mainTarget attack:", peer)
                     self.mainTarget = self.chooseMainTarget()
                     #To select a new mainTarget after incorporating a new peer to the regular list
+                elif peer in self.regularPeers:
+                    self.SendChunk(self.get_poisoned_chunk(self.receive_and_feed_previous), peer)
+                    print("allAttackC attack:", peer)
+		     #self.peer_list.remove(peer)                
                 else:
                     self.SendChunk(bytes(self.receive_and_feed_previous), peer)
-                    print("No poisoned 2", peer)
+                    print("No poisoned", peer)
 
                 chunk_number, chunk, k1, k2 = struct.unpack("H1024s40s40s", self.get_poisoned_chunk(self.receive_and_feed_previous))
                 print (Color.red, "Persistent Attack: ", str(peer), "CN:", str(socket.ntohs(chunk_number)),  Color.none)

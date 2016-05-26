@@ -12,7 +12,7 @@ from color import Color
 processes = []
 lifeTimes = {}
 
-TIMER=0
+#TIMER=0
 DEVNULL = open(os.devnull, 'wb')
 SEED = 12345678
 
@@ -24,7 +24,7 @@ playerPort = 61000
 currentRound = 0
 
 LAST_ROUND_NUMBER = 0
-Q = 500
+#Q = 500
 
 INIT_TIME = 0
 TOTAL_TIME = 60
@@ -34,8 +34,9 @@ mp_expelled_by_tps = []
 
 P_IN = 50
 P_OUT = 50
-P_WIP = 10
+P_WIP = 50
 P_MP = 100 - P_WIP
+P_MPL = 60
 
 #TODO: Churn point 5. Weibull distribution.
 #TODO: MP point 2. MP should not attack over 50% of the team.
@@ -68,7 +69,7 @@ def runStream():
 def runSplitter(ds = False):
     prefix = ""
     if ds: prefix = "ds"
-    run("./splitter.py --port 8001 --source_port 8080 --max_chunk_loss 1 --strpeds_log strpe-testing/splitter.log".format(prefix), open("strpe-testing/splitter.out", "w"))
+    run("./splitter.py --port 8001 --source_port 8080 --max_chunk_loss 1 --strpeds_log strpe-testing/splitter.log --p_mpl "+str(P_MPL), open("strpe-testing/splitter.out", "w"))
 
     time.sleep(0.25)
 
@@ -254,12 +255,12 @@ def findLastRound():
              return int(result.group(2))
     return -1
 
-def checkForRounds():
-    global currentRound
-    lastRound = findLastRound()
-    if lastRound != currentRound:
-        currentRound = lastRound
-    return currentRound - LAST_ROUND_NUMBER < Q
+#def checkForRounds():
+#    global currentRound
+#    lastRound = findLastRound()
+#    if lastRound != currentRound:
+#        currentRound = lastRound
+#    return currentRound - LAST_ROUND_NUMBER < Q
 
 def main(args):
     random.seed(SEED)
