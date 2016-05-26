@@ -40,7 +40,7 @@ class MaliciousPeer(PeerSTRPEDS):
     numberChunksSendToMainTarget = 0
     allAttackC = False
     badMouthAttack = False
-    MPTR = 2
+    MPTR = 5
 
     def __init__(self, peer):
         # {{{
