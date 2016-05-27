@@ -82,6 +82,7 @@ def main(args):
                     for line in fh:
                         if line[:-1] in peers:
                             trusted += 1
+                            
                 with open("malicious.txt", "r") as fh:
                     for line in fh:
                         if line[:-1] in peers:

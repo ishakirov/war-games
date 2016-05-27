@@ -6,6 +6,7 @@ import time
 import random
 import shlex, subprocess
 import re
+import glob
 import platform
 from color import Color
 
@@ -31,12 +32,14 @@ TOTAL_TIME = 60
 
 trusted_peers = []
 mp_expelled_by_tps = []
+angry_peers = []
 
 P_IN = 50
 P_OUT = 50
 P_WIP = 50
 P_MP = 100 - P_WIP
 P_MPL = 60
+BFR_min = -1
 
 #TODO: Churn point 5. Weibull distribution.
 #TODO: MP point 2. MP should not attack over 50% of the team.
@@ -49,15 +52,16 @@ def checkdir():
 def usage():
     print "args error"
 
-def run(runStr, out = DEVNULL):
+def run(runStr, peerStr = "", out = DEVNULL):
     proc = subprocess.Popen(shlex.split(runStr), stdout=out, stderr=out)
-    processes.append(proc)
+    processes.append((proc, peerStr))
     return proc
             
 
 def killall():
     for proc in processes:
-        proc.kill()
+        if proc[0].poll() == None:
+            proc[0].kill()
 
 def runStream():
     if platform.system() == "Linux":
@@ -69,7 +73,7 @@ def runStream():
 def runSplitter(ds = False):
     prefix = ""
     if ds: prefix = "ds"
-    run("./splitter.py --port 8001 --source_port 8080 --max_chunk_loss 16 --strpeds_log strpe-testing/splitter.log --p_mpl "+str(P_MPL), open("strpe-testing/splitter.out", "w"))
+    run("./splitter.py --port 8001 --source_port 8080 --max_chunk_loss 16 --strpeds_log strpe-testing/splitter.log --p_mpl "+str(P_MPL), "splitter", open("strpe-testing/splitter.out", "w"))
 
     time.sleep(0.25)
 
@@ -87,11 +91,11 @@ def runPeer(trusted = False, malicious = False, ds = False):
     if not malicious:
          runStr += " --strpeds_log ./strpe-testing/peer{0}.log".format(port)
 
-    run(runStr, open("./strpe-testing/peer{0}.out".format(port), "w"))
+    run(runStr, "127.0.0.1:"+str(port), open("./strpe-testing/peer{0}.out".format(port), "w"))
     time.sleep(0.25)
 
     #run netcat
-    proc = run("nc 127.0.0.1 {0}".format(playerPort))
+    proc = run("nc 127.0.0.1 {0}".format(playerPort), "127.0.0.1:"+str(port))
     #Weibull distribution in this random number:
     lifeTimes[proc]= (random.randint(TOTAL_TIME-(TOTAL_TIME/8),TOTAL_TIME+(TOTAL_TIME/4)), "127.0.0.1:"+str(port), peertype)
 
@@ -163,26 +167,68 @@ def churn():
             nPeersTeam+=1
             runPeer(True, False, True)
 
-        for p,t in lifeTimes.items():
+        for p,t in lifeTimes.items ():
             if t[0] <= (time.time()-INIT_TIME):
-                print Color.red, "Out:-->", Color.none, t[2], t[1]
-                p.kill()
-                del lifeTimes[p]
-                if t[2] == "TP":
-                    nTrusted+=1
+                if p.poll() == None:
+                    print Color.red, "Out:-->", Color.none, t[2], t[1]
+                    p.kill()
+                    del lifeTimes[p]
+                    if t[2] == "TP":
+                        nTrusted+=1
 
-                if t[2] == "MP":
-                    nMalicious+=1
-                nPeersTeam-=1
-        
+                    if t[2] == "MP":
+                        nMalicious+=1
+                    
+                    nPeersTeam-=1
+
         anyMPexpelled = checkForMaliciousExpelled()
         if anyMPexpelled != None:
             print Color.red, "Out: --> MP", anyMPexpelled, Color.none
             nMalicious+=1
 	    nPeersTeam-=1
+
+
+        #Angry peers leave the team
+        checkForBufferTimes()
+        for peer in angry_peers:
+            for proc in processes:
+                if proc[0].poll() == None:
+                    if (proc[1] == peer):
+                        proc[0].kill()
+                        print Color.red, "Out: --> ", peer, "(by BFR_min)", Color.none
         
         #print "Timer: "+ str(TIMER)
         #time.sleep(0.5)
+
+
+def checkForBufferTimes():
+    global BFR_min, angry_peers
+    fileList = glob.glob("./strpe-testing/peer*.log")
+    for f in fileList:
+        buffer_value = getLastBufferFor(f)
+        if (buffer_value != None) and (buffer_value < BFR_min):
+            regex_peer = re.compile("./strpe-testing/peer(\d*).log")
+            result = regex_peer.match(f)
+            if result != None:
+                peer_str = "127.0.0.1:"+str(int(result.group(1)))
+                if peer_str not in angry_peers:
+                    angry_peers.append(peer_str)
+    
+def getLastBufferFor(inFile):
+    if os.path.getsize(inFile) == 0:
+        return None
+    
+    regex_filling = re.compile("(\d*.\d*)\tbuffer\sfilling\s(\d*.\d*)")
+    filling = -1.0
+    with open(inFile) as f:
+        for line in f:
+            pass
+        
+    result = regex_filling.match(line)
+    if result != None:
+        filling = float(result.group(2))
+
+    return filling
 
 def addRegularOrMaliciousPeer():
     global nMalicious, nPeersTeam, P_MP, P_WIP, iteration, nTrusted, TOTAL_TIME, currentRound
@@ -339,7 +385,7 @@ def main(args):
     print "******************* Parsing Results  *******************"
     path = "./strpe-testing/sample.dat"
     print "Target file: "+path
-    process = run("./parse.py -r "+str(LAST_ROUND_NUMBER), open(path,"w"))
+    process = run("./parse.py -r "+str(LAST_ROUND_NUMBER),"parsing",open(path,"w"))
     process.wait()
     print "Done!"
 
