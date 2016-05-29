@@ -11,9 +11,7 @@ import platform
 from color import Color
 
 processes = []
-lifeTimes = {}
 
-#TIMER=0
 DEVNULL = open(os.devnull, 'wb')
 SEED = 12345678
 
@@ -25,7 +23,6 @@ playerPort = 61000
 currentRound = 0
 
 LAST_ROUND_NUMBER = 0
-#Q = 500
 
 INIT_TIME = 0
 TOTAL_TIME = 60
@@ -52,9 +49,9 @@ def checkdir():
 def usage():
     print "args error"
 
-def run(runStr, peerStr = "", out = DEVNULL):
+def run(runStr, out = DEVNULL, alias = "", ttl = None, entityType = ""):
     proc = subprocess.Popen(shlex.split(runStr), stdout=out, stderr=out)
-    processes.append((proc, peerStr))
+    processes.append((proc, alias, ttl, entityType))
     return proc
             
 
@@ -73,12 +70,12 @@ def runStream():
 def runSplitter(ds = False):
     prefix = ""
     if ds: prefix = "ds"
-    run("./splitter.py --port 8001 --source_port 8080 --max_chunk_loss 16 --strpeds_log strpe-testing/splitter.log --p_mpl "+str(P_MPL), "splitter", open("strpe-testing/splitter.out", "w"))
+    run("./splitter.py --port 8001 --source_port 8080 --max_chunk_loss 16 --strpeds_log strpe-testing/splitter.log --p_mpl "+str(P_MPL), open("strpe-testing/splitter.out", "w"))
 
     time.sleep(0.25)
 
 def runPeer(trusted = False, malicious = False, ds = False):
-    global port, playerPort, TOTAL_TIME
+    global port, playerPort, TOTAL_TIME, DEVNULL
     #run peer
     runStr = "./peer.py --splitter_port 8001 --use_localhost --port {0} --player_port {1}".format(port, playerPort)
 
@@ -91,14 +88,16 @@ def runPeer(trusted = False, malicious = False, ds = False):
     if not malicious:
          runStr += " --strpeds_log ./strpe-testing/peer{0}.log".format(port)
 
-    run(runStr, "127.0.0.1:"+str(port), open("./strpe-testing/peer{0}.out".format(port), "w"))
+    run(runStr, open("./strpe-testing/peer{0}.out".format(port), "w"), "127.0.0.1:"+str(port))
     time.sleep(0.25)
 
-    #run netcat
-    proc = run("nc 127.0.0.1 {0}".format(playerPort), "127.0.0.1:"+str(port))
     #Weibull distribution in this random number:
-    lifeTimes[proc]= (random.randint(TOTAL_TIME-(TOTAL_TIME/8),TOTAL_TIME+(TOTAL_TIME/4)), "127.0.0.1:"+str(port), peertype)
+    ttl = random.randint(TOTAL_TIME-(TOTAL_TIME/8),TOTAL_TIME+(TOTAL_TIME/4))
+    alias = "127.0.0.1:"+str(port)
 
+    #run netcat
+    proc = run("nc 127.0.0.1 {0}".format(playerPort), DEVNULL, alias, ttl, peertype)
+                         
     port, playerPort = port + 1, playerPort + 1
 
    
@@ -148,7 +147,7 @@ def initializeTeam(nPeers, nInitialTrusted):
        runPeer(False, False, True)
 
 def churn():
-    global trusted_peers, P_IN, nTrusted, nPeersTeam, INIT_TIME, nMalicious, TOTAL_TIME
+    global trusted_peers, P_IN, nTrusted, nPeersTeam, INIT_TIME, nMalicious, TOTAL_TIME, processes
 
     #while checkForRounds():
     while TOTAL_TIME > (time.time()-INIT_TIME):
@@ -167,16 +166,16 @@ def churn():
             nPeersTeam+=1
             runPeer(True, False, True)
 
-        for p,t in lifeTimes.items ():
-            if t[0] <= (time.time()-INIT_TIME):
-                if p.poll() == None:
-                    print Color.red, "Out:-->", Color.none, t[2], t[1]
-                    p.kill()
-                    del lifeTimes[p]
-                    if t[2] == "TP":
+        for p in processes:
+            if p[2] != None and p[2] <= (time.time()-INIT_TIME):
+                if p[0].poll() == None:
+                    print Color.red, "Out:-->", Color.none, p[3], p[1]
+                    p[0].kill()
+
+                    if p[3] == "TP":
                         nTrusted+=1
 
-                    if t[2] == "MP":
+                    if p[3] == "MP":
                         nMalicious+=1
                     
                     nPeersTeam-=1
@@ -188,7 +187,7 @@ def churn():
 	    nPeersTeam-=1
 
 
-        #Angry peers leave the team
+        #Angry peers leave the team (BFR is under BFT_min)
         checkForBufferTimes()
         for peer in angry_peers:
             for proc in processes:
@@ -385,7 +384,7 @@ def main(args):
     print "******************* Parsing Results  *******************"
     path = "./strpe-testing/sample.dat"
     print "Target file: "+path
-    process = run("./parse.py -r "+str(LAST_ROUND_NUMBER),"parsing",open(path,"w"))
+    process = run("./parse.py -r "+str(LAST_ROUND_NUMBER), open(path,"w"))
     process.wait()
     print "Done!"
 
