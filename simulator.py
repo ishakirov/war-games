@@ -30,17 +30,19 @@ TOTAL_TIME = 60
 trusted_peers = []
 mp_expelled_by_tps = []
 angry_peers = []
+angry_peers_retired = []
+buffer_values = {}
 
 P_IN = 50
 P_OUT = 50
-P_WIP = 50
+P_WIP = 10
 P_MP = 100 - P_WIP
 P_MPL = 60
-BFR_min = -1
+BFR_min = 0.5
+alpha = 0.9
 
 #TODO: Churn point 5. Weibull distribution.
 #TODO: MP point 2. MP should not attack over 50% of the team.
-#TODO: WIP behaviour under attacks.
 
 def checkdir():
     if not os.path.exists("./strpe-testing"):
@@ -166,19 +168,8 @@ def churn():
             nPeersTeam+=1
             runPeer(True, False, True)
 
-        for p in processes:
-            if p[2] != None and p[2] <= (time.time()-INIT_TIME):
-                if p[0].poll() == None:
-                    print Color.red, "Out:-->", Color.none, p[3], p[1]
-                    p[0].kill()
 
-                    if p[3] == "TP":
-                        nTrusted+=1
-
-                    if p[3] == "MP":
-                        nMalicious+=1
-                    
-                    nPeersTeam-=1
+        checkForBufferTimes()
 
         anyMPexpelled = checkForMaliciousExpelled()
         if anyMPexpelled != None:
@@ -186,39 +177,69 @@ def churn():
             nMalicious+=1
 	    nPeersTeam-=1
 
+        for p in processes:
+            if p[2] != None and p[2] <= (time.time()-INIT_TIME):
+                if p[0].poll() == None:
+                    if (p[1] not in mp_expelled_by_tps):
+                        print Color.red, "Out:-->", Color.none, p[3], p[1]
+                        p[0].kill()
 
-        #Angry peers leave the team (BFR is under BFT_min)
-        checkForBufferTimes()
-        for peer in angry_peers:
-            for proc in processes:
-                if proc[0].poll() == None:
-                    if (proc[1] == peer):
-                        proc[0].kill()
-                        print Color.red, "Out: --> ", peer, "(by BFR_min)", Color.none
+                        if p[3] == "TP":
+                            nTrusted+=1
+
+                        if p[3] == "MP":
+                            nMalicious+=1
+                    
+                        nPeersTeam-=1
+
+            if (p[1] in angry_peers):
+                if p[1] not in angry_peers_retired:
+                    print Color.red, "Out: --> ",p[3], p[1], "(by BFR_min)", Color.none
+                
+                    p[0].kill()
+
+                    angry_peers_retired.append(p[1])
+                 
+                    if p[3] == "TP":
+                        nTrusted+=1
+
+                    if p[3] == "MP":
+                        nMalicious+=1
+                            
+                    nPeersTeam-=1
         
         #print "Timer: "+ str(TIMER)
         #time.sleep(0.5)
 
 
 def checkForBufferTimes():
-    global BFR_min, angry_peers
+    global BFR_min, angry_peers, buffer_values
     fileList = glob.glob("./strpe-testing/peer*.log")
     for f in fileList:
-        buffer_value = getLastBufferFor(f)
-        if (buffer_value != None) and (buffer_value < BFR_min):
-            regex_peer = re.compile("./strpe-testing/peer(\d*).log")
-            result = regex_peer.match(f)
-            if result != None:
-                peer_str = "127.0.0.1:"+str(int(result.group(1)))
-                if peer_str not in angry_peers:
-                    angry_peers.append(peer_str)
+        
+        regex_peer = re.compile("./strpe-testing/peer(\d*).log")
+        result = regex_peer.match(f)
+        if result != None:
+            peer_str = "127.0.0.1:"+str(int(result.group(1)))
+                
+        if peer_str not in buffer_values:
+            buffer_values[peer_str] = 1
+
+        buffer_filling = getLastBufferFor(f)
+        if buffer_filling != None: 
+            BF = (buffer_filling/0.5)
+            buffer_values[peer_str] = alpha * BF + (1-alpha) * buffer_values[peer_str]
+        
+        if (buffer_values[peer_str] != 0) and (buffer_values[peer_str] < BFR_min):
+            if peer_str not in angry_peers:
+                angry_peers.append(peer_str)
     
 def getLastBufferFor(inFile):
     if os.path.getsize(inFile) == 0:
         return None
     
     regex_filling = re.compile("(\d*.\d*)\tbuffer\sfilling\s(\d*.\d*)")
-    filling = -1.0
+    filling = 0.5
     with open(inFile) as f:
         for line in f:
             pass
@@ -381,10 +402,12 @@ def main(args):
 
     killall()
 
-    print "******************* Parsing Results  *******************"
+    print "******************* Parsing Results  ********************"
     path = "./strpe-testing/sample.dat"
     print "Target file: "+path
-    process = run("./parse.py -r "+str(LAST_ROUND_NUMBER), open(path,"w"))
+    #process = run("./parse.py -r "+str(LAST_ROUND_NUMBER), open(path,"w"))
+    #Initial round is not necessary because log is recorded after buffering.
+    process = run("./parse.py", open(path,"w"))
     process.wait()
     print "Done!"
 
