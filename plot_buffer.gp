@@ -10,11 +10,11 @@ reset
 #set terminal svg size 800,600 fname 'Verdana, Helvetica, Arial, sans-serif' fsize '10'
 #set output 'a.svg'
 
+set terminal x11
+
 # color definitions
 set border linewidth 1.5
-set style line 1 lc rgb '#0B6121' lt 1 lw 2 pt 7 ps 1 # --- green for WIPs
-set style line 2 lc rgb '#DF0101' lt 1 lw 2 pt 9 ps 1 # --- red for MPs
-set style line 3 lc rgb '#0060ad' lt 1 lw 2 pt 5 ps 1 # --- blue for TPs
+set style line 1 lc rgb '#A4A4A4' lt 1 lw 2 pt 7 ps 1 # --- gray for buffer
 
 #unset key
 

@@ -271,11 +271,15 @@ class MaliciousPeer(PeerSTRPEDS):
                     self.numberChunksSendToMainTarget += 1
                     print("mainTarget+=1 ({0})".format(self.numberChunksSendToMainTarget))
                 elif peer == self.mainTarget and self.numberChunksSendToMainTarget >= self.MPTR:
-                    self.allAttack()
-                    self.SendChunk(self.get_poisoned_chunk(self.receive_and_feed_previous), peer)
-                    print("mainTarget attack:", peer)
-                    self.mainTarget = self.chooseMainTarget()
-                    #To select a new mainTarget after incorporating a new peer to the regular list
+                    if len(self.regularPeers) < (len(self.GetPeerList())/2):
+                        self.allAttack()
+                        self.SendChunk(self.get_poisoned_chunk(self.receive_and_feed_previous), peer)
+                        print("mainTarget attack:", peer)
+                        self.mainTarget = self.chooseMainTarget()
+                        #To select a new mainTarget after incorporating a new peer to the regular list
+                    else:
+                         self.SendChunk(bytes(self.receive_and_feed_previous), peer)
+                         print("No poisoned due to attack ratio "+ str(len(self.regularPeers)) + " of " + str(len(self.GetPeerList())))
                 elif peer in self.regularPeers:
                     self.SendChunk(self.get_poisoned_chunk(self.receive_and_feed_previous), peer)
                     print("allAttackC attack:", peer)

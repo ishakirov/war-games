@@ -35,14 +35,13 @@ buffer_values = {}
 
 P_IN = 50
 P_OUT = 50
-P_WIP = 10
+P_WIP = 50
 P_MP = 100 - P_WIP
 P_MPL = 60
 BFR_min = 0.5
 alpha = 0.9
 
 #TODO: Churn point 5. Weibull distribution.
-#TODO: MP point 2. MP should not attack over 50% of the team.
 
 def checkdir():
     if not os.path.exists("./strpe-testing"):
