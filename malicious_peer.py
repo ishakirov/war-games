@@ -49,7 +49,7 @@ class MaliciousPeer(PeerSTRPEDS):
         # }}}
 
 
-    def firshMainTarget(self):
+    def firstMainTarget(self):
         self.mainTarget = self.chooseMainTarget()
 
     def chooseMainTarget(self):
@@ -264,13 +264,13 @@ class MaliciousPeer(PeerSTRPEDS):
     def send_chunk(self, peer):
         if len(self.receive_and_feed_previous) == 1106:
             if self.persistentAttack:
-                if peer == self.mainTarget and self.numberChunksSendToMainTarget < self.MPTR:
+                if (peer == self.mainTarget) and (self.numberChunksSendToMainTarget < self.MPTR):
                     self.SendChunk(self.get_poisoned_chunk(self.receive_and_feed_previous), peer)
                     print("mainTarget attack:", peer)
                     self.sendto_counter += 1
                     self.numberChunksSendToMainTarget += 1
                     print("mainTarget+=1 ({0})".format(self.numberChunksSendToMainTarget))
-                elif peer == self.mainTarget and self.numberChunksSendToMainTarget >= self.MPTR:
+                elif (peer == self.mainTarget) and (self.numberChunksSendToMainTarget >= self.MPTR):
                     if len(self.regularPeers) < (len(self.GetPeerList())/2):
                         self.allAttack()
                         self.SendChunk(self.get_poisoned_chunk(self.receive_and_feed_previous), peer)
@@ -343,3 +343,6 @@ class MaliciousPeer(PeerSTRPEDS):
                 self.bad_peers.append(peer_obj)
         else:
             self.bad_peers = []
+
+    def setMPTR(self, value):
+        self.MPTR = int(value)

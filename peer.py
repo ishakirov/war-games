@@ -143,6 +143,7 @@ class Peer():
         parser.add_argument('--strpeds_log', help='Logging STrPe & STrPe-DS specific data to file.')
         parser.add_argument('--show_buffer', action="store_true", help='Shows the status of the buffer of chunks.')
         parser.add_argument('--monitor', action="store_true", help='Enables monitor')
+        parser.add_argument('--mptr', help='Number of rounds attacking a peer individually before all attack mode.')
         try:
             argcomplete.autocomplete(parser)
         except Exception:
@@ -245,7 +246,7 @@ class Peer():
             '''
             if args.malicious:
                 #peer = Peer_StrpeDsMalicious(peer)
-                peer.firshMainTarget()
+                peer.firstMainTarget()
                 if args.persistent:
                     peer.setPersistentAttack(True)
                 if args.on_off_ratio:
@@ -254,6 +255,8 @@ class Peer():
                     peer.setSelectiveAttack(True, args.selective)
                 if args.bad_mouth:
                     peer.setBadMouthAttack(True, args.bad_mouth)
+                if args.mptr:
+                    peer.setMPTR(args.mptr)
             '''
             if args.trusted:
                 peer = TrustedPeer(peer)

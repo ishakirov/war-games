@@ -38,6 +38,7 @@ P_OUT = 50
 P_WIP = 50
 P_MP = 100 - P_WIP
 P_MPL = 60
+MPTR = 5
 BFR_min = 0.5
 alpha = 0.9
 
@@ -76,7 +77,7 @@ def runSplitter(ds = False):
     time.sleep(0.25)
 
 def runPeer(trusted = False, malicious = False, ds = False):
-    global port, playerPort, TOTAL_TIME, DEVNULL
+    global port, playerPort, TOTAL_TIME, DEVNULL, MPTR
     #run peer
     runStr = "./peer.py --splitter_port 8001 --use_localhost --port {0} --player_port {1}".format(port, playerPort)
 
@@ -85,7 +86,7 @@ def runPeer(trusted = False, malicious = False, ds = False):
         peertype = "TP"
     if malicious:
         peertype = "MP"
-        runStr += " --malicious --persistent"
+        runStr += " --malicious --persistent --mptr {0}".format(MPTR)
     if not malicious:
          runStr += " --strpeds_log ./strpe-testing/peer{0}.log".format(port)
 
