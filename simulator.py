@@ -39,7 +39,7 @@ P_WIP = 50
 P_MP = 100 - P_WIP
 P_MPL = 60
 MPTR = 5
-BFR_min = 0.5
+BFR_min = 0.75
 alpha = 0.9
 
 #TODO: Churn point 5. Weibull distribution.
@@ -82,6 +82,7 @@ def runPeer(trusted = False, malicious = False, ds = False):
     runStr = "./peer.py --splitter_port 8001 --use_localhost --port {0} --player_port {1}".format(port, playerPort)
 
     peertype = "WIP"
+    
     if trusted:
         peertype = "TP"
     if malicious:
@@ -90,7 +91,7 @@ def runPeer(trusted = False, malicious = False, ds = False):
     if not malicious:
          runStr += " --strpeds_log ./strpe-testing/peer{0}.log".format(port)
 
-    run(runStr, open("./strpe-testing/peer{0}.out".format(port), "w"), "127.0.0.1:"+str(port))
+    run(runStr, open("./strpe-testing/peer{0}.out".format(port), "w"), "127.0.0.1:"+str(port), None , peertype)
     time.sleep(0.25)
 
     #Weibull distribution in this random number:
@@ -153,10 +154,13 @@ def churn():
 
     #while checkForRounds():
     while TOTAL_TIME > (time.time()-INIT_TIME):
+
+        # Arrival of regular or malicious peers
         r = random.randint(1,100)
         if r <= P_IN:
             addRegularOrMaliciousPeer()
 
+        # Arrival of trusted peers
         r = random.randint(1,100)    
         if r <= P_IN and nTrusted>0:
             print Color.green, "In: <--", Color.none, "TP 127.0.0.1:{0}".format(port)
@@ -168,19 +172,24 @@ def churn():
             nPeersTeam+=1
             runPeer(True, False, True)
 
-
+        
         checkForBufferTimes()
 
+        # Malicious peers expelled by splitter (using the TP information)
         anyMPexpelled = checkForMaliciousExpelled()
         if anyMPexpelled != None:
             print Color.red, "Out: --> MP", anyMPexpelled, Color.none
             nMalicious+=1
 	    nPeersTeam-=1
 
+        # Departures of peers
         for p in processes:
-            if p[2] != None and p[2] <= (time.time()-INIT_TIME):
-                if p[0].poll() == None:
-                    if (p[1] not in mp_expelled_by_tps):
+
+            # Based on times
+            r = random.randint(1,100)
+            if (r <= P_OUT) and (p[0].poll() == None):
+                if p[2] != None and p[2] <= (time.time()-INIT_TIME):
+                    if p[1] not in mp_expelled_by_tps:
                         print Color.red, "Out:-->", Color.none, p[3], p[1]
                         p[0].kill()
 
@@ -192,21 +201,24 @@ def churn():
                     
                         nPeersTeam-=1
 
-            if (p[1] in angry_peers):
-                if p[1] not in angry_peers_retired:
-                    print Color.red, "Out: --> ",p[3], p[1], "(by BFR_min)", Color.none
-                
-                    p[0].kill()
+            # Based on BFR
+            r = random.randint(1,100)
+            if (r <= P_OUT) and (p[0].poll() == None):
+                if (p[1] in angry_peers):
+                    if p[1] not in angry_peers_retired:
+                        print Color.red, "Out: -->", p[3], p[1], "(by BFR_min)", Color.none
+                        
+                        p[0].kill()
 
-                    angry_peers_retired.append(p[1])
-                 
-                    if p[3] == "TP":
-                        nTrusted+=1
+                        angry_peers_retired.append(p[1])
+                        
+                        if p[3] == "TP":
+                            nTrusted+=1
 
-                    if p[3] == "MP":
-                        nMalicious+=1
+                        if p[3] == "MP":
+                            nMalicious+=1
                             
-                    nPeersTeam-=1
+                        nPeersTeam-=1
         
         #print "Timer: "+ str(TIMER)
         #time.sleep(0.5)
