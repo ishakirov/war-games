@@ -17,39 +17,70 @@ def usage():
 def calcAverageBufferCorrectnes(roundTime):
     fileList = glob.glob("./strpe-testing/peer*.log")
     correctnesSum = fillingSum = 0.0
+    losses = 0
     NN = 0
     for f in fileList:
         info = calcAverageInFile(f, roundTime)
         if (info[0] != None and info[1] != None):
             correctnesSum += info[0]
             fillingSum += info[1]
-            NN += 1
+            losses += info[2]
+            NN += 1       
 
     if NN == 0:
-        return (None,None)
-    return (correctnesSum / NN, fillingSum / NN)
+        return (None,None, losses)
+    return (correctnesSum / NN, fillingSum / NN, losses / NN)
     
 def calcAverageInFile(inFile, roundTime):
-    regex_correctness = re.compile("(\d*.\d*)\tbuffer\scorrectnes\s(\d*.\d*)")
-    regex_filling = re.compile("(\d*.\d*)\tbuffer\sfilling\s(\d*.\d*)")
-    correctness = -1.0
-    filling = -1.0
+    regex_correctness = re.compile("(\d*)\tbuffer\scorrectnes\s(\d*.\d*)")
+    regex_filling = re.compile("(\d*)\tbuffer\sfilling\s(\d*.\d*)")
+    regex_fullness = re.compile("(\d*)\tchunk\slost\sat\s(\d*)")
+
+    correctness = None
+    filling = None
+    losses = 0.0
+    
+    last_round_filling = 0
+    last_round_fullness = 0
+    
     with open(inFile) as f:
         for line in f:
-            result = regex_correctness.match(line)
-            result2 = regex_filling.match(line)
-            if result != None and correctness == -1.0:
-                ts = float(result.group(1))
+            
+            result_correctness = regex_correctness.match(line)
+            #print result_correctness
+            result_filling = regex_filling.match(line)
+            #print result_filling
+            result_fullness = regex_fullness.match(line)
+            #print result_fullness
+            
+            if result_correctness != None:
+                ts = int(result_correctness.group(1))
                 if ts == roundTime:
-                    correctness = float(result.group(2))
-            if result2 != None and filling == -1.0:
-                ts = float(result2.group(1))
+                    correctness = float(result_correctness.group(2))
+                    
+            if result_filling != None:
+                ts = int(result_filling.group(1))
                 if ts == roundTime:
-                    filling = float(result2.group(2))
-            if correctness != -1.0 and filling != -1.0:
-                return (correctness, filling)
+                    filling = float(result_filling.group(2))
+                else:
+                    last_round_filling = ts
 
-    return (None, None)
+            if result_fullness != None:
+                ts = int(result_fullness.group(1))
+                if ts == roundTime:
+                    #print ("ts en fullness: "+str(ts)+ " vs roundTime "+str(roundTime))
+                    losses += 1.0
+                else:
+                    last_round_fullness = ts
+
+            if (last_round_filling > roundTime) and ((last_round_fullness  > roundTime) or (last_round_fullness == 0 )):
+                return (correctness, filling, losses)
+            
+            #if correctness != -1.0 and filling != -1.0:
+                #return (correctness, filling)
+
+    return (correctness, filling, losses)    
+    
 
 def main(args):
     inFile = ""
@@ -63,15 +94,15 @@ def main(args):
         if opt == "-r":
             lastRound = int(arg)
 
-    regex = re.compile("(\d*.\d*)\t(\d*)\s(\d*)\s(.*)")
+    regex = re.compile("(\d*)\t(\d*)\s(\d*)\s(.*)")
     startParse = False
     roundOffset = 0
-    print "round\t#WIPs\t#MPs\t#TPs\tteamsize\tcorrectness\tfilling"
+    print "round\t#WIPs\t#MPs\t#TPs\tteamsize\tcorrectness\tfilling\tfullness"
     with open("./strpe-testing/splitter.log") as f:
         for line in f:
             result = regex.match(line)
             if result != None:
-                ts = float(result.group(1))
+                ts = int(result.group(1))
                 currentRound = int(result.group(2))
                 currentTeamSize = int(result.group(3))
                 peers = result.group(4).split(' ')
@@ -94,7 +125,7 @@ def main(args):
                 if startParse:
                     info = calcAverageBufferCorrectnes(ts)
                     if (info[0] != None and info[1]!=None):
-                        print "{0}\t{1}\t{2}\t{3}\t{4}\t{5}\t{6}".format(currentRound - roundOffset + 1, len(peers) - malicious - trusted, malicious, trusted, currentTeamSize, info[0], info[1])
+                        print "{0}\t{1}\t{2}\t{3}\t{4}\t{5}\t{6}\t{7}".format(currentRound - roundOffset + 1, len(peers) - malicious - trusted, malicious, trusted, currentTeamSize, info[0], info[1], (1-float(info[2])/float(currentTeamSize))*0.5)
     return 0
 
 if __name__ == "__main__":

@@ -426,6 +426,7 @@ def main(args):
     print "******************* Plotting Results  *******************"
     run("gnuplot -e \"filename='"+path+"'\" plot_team.gp")
     run("gnuplot -e \"filename='"+path+"'\" plot_buffer.gp")
+    run("gnuplot -e \"filename='"+path+"'\" plot_fullness.gp")
     return 0
 
 if __name__ == "__main__":

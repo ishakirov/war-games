@@ -106,7 +106,8 @@ class MaliciousPeer(PeerSTRPEDS):
         if len(message) == self.message_size:
             # {{{ A video chunk has been received
             print("longitud: ", len(message))
-            chunk_number, chunk, k1, k2 = struct.unpack("H1024s40s40s", message)
+            chunk_number, chunk, k1, k2, cr = struct.unpack("=H1024s40s40sI", message)
+            self.current_round = cr
             chunk_number = socket.ntohs(chunk_number)
             #self.chunks[chunk_number % self.buffer_size] = chunk
             self.InsertChunk(chunk_number%self.buffer_size, chunk)
@@ -262,7 +263,7 @@ class MaliciousPeer(PeerSTRPEDS):
             fh.close()
     
     def send_chunk(self, peer):
-        if len(self.receive_and_feed_previous) == 1106:
+        if len(self.receive_and_feed_previous) == 1110:
             if self.persistentAttack:
                 if (peer == self.mainTarget) and (self.numberChunksSendToMainTarget < self.MPTR):
                     self.SendChunk(self.get_poisoned_chunk(self.receive_and_feed_previous), peer)
@@ -288,7 +289,7 @@ class MaliciousPeer(PeerSTRPEDS):
                     self.SendChunk(bytes(self.receive_and_feed_previous), peer)
                     print("No poisoned", peer)
 
-                chunk_number, chunk, k1, k2 = struct.unpack("H1024s40s40s", self.get_poisoned_chunk(self.receive_and_feed_previous))
+                chunk_number, chunk, k1, k2, cr = struct.unpack("=H1024s40s40sI", self.get_poisoned_chunk(self.receive_and_feed_previous))
                 print (Color.red, "Persistent Attack: ", str(peer), "CN:", str(socket.ntohs(chunk_number)),  Color.none)
                 return
             
@@ -317,8 +318,8 @@ class MaliciousPeer(PeerSTRPEDS):
             print (Color.red, "No Attack", Color.none)
         
     def get_poisoned_chunk(self, message):
-        chunk_number, chunk, k1, k2 = struct.unpack("H1024s40s40s", message)
-        return struct.pack("H1024s40s40s", chunk_number, ("fake_chunk").encode("utf8"), k1, k2)
+        chunk_number, chunk, k1, k2, cr = struct.unpack("=H1024s40s40sI", message)
+        return struct.pack("=H1024s40s40sI", chunk_number, ("fake_chunk").encode("utf8"), k1, k2,cr)
 
     def setPersistentAttack(self, value):
         self.persistentAttack = value
