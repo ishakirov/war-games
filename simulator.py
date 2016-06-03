@@ -9,6 +9,7 @@ import re
 import glob
 import platform
 from color import Color
+import numpy as np
 
 processes = []
 
@@ -41,8 +42,7 @@ P_MPL = 60
 MPTR = 5
 BFR_min = 0.75
 alpha = 0.9
-
-#TODO: Churn point 5. Weibull distribution.
+WEIBULL_SHAPE = 5.
 
 def checkdir():
     if not os.path.exists("./strpe-testing"):
@@ -55,7 +55,7 @@ def run(runStr, out = DEVNULL, alias = "", ttl = None, entityType = ""):
     proc = subprocess.Popen(shlex.split(runStr), stdout=out, stderr=out)
     processes.append((proc, alias, ttl, entityType))
     return proc
-            
+
 
 def killall():
     for proc in processes:
@@ -66,7 +66,7 @@ def runStream():
     if platform.system() == "Linux":
         run("cvlc Big_Buck_Bunny_small.ogv --sout \"#duplicate{dst=standard{mux=ogg,dst=:8080/test.ogg,access=http}}\"")
     else:
-        run("/Applications/VLC.app/Contents/MacOS/VLC Big_Buck_Bunny_small.ogv --sout \"#duplicate{dst=standard{mux=ogg,dst=,access=http}}\"")
+        run("/Applications/VLC.app/Contents/MacOS/VLC Big_Buck_Bunny_small.ogv --sout \"#duplicate{dst=standard{mux=ogg,dst=:8080/test.ogg,access=http}}\"")
     time.sleep(0.5)
 
 def runSplitter(ds = False):
@@ -77,12 +77,12 @@ def runSplitter(ds = False):
     time.sleep(0.25)
 
 def runPeer(trusted = False, malicious = False, ds = False):
-    global port, playerPort, TOTAL_TIME, DEVNULL, MPTR
+    global port, playerPort, TOTAL_TIME, DEVNULL, MPTR, WEIBULL_SHAPE
     #run peer
     runStr = "./peer.py --splitter_port 8001 --use_localhost --port {0} --player_port {1}".format(port, playerPort)
 
     peertype = "WIP"
-    
+
     if trusted:
         peertype = "TP"
     if malicious:
@@ -95,15 +95,16 @@ def runPeer(trusted = False, malicious = False, ds = False):
     time.sleep(0.25)
 
     #Weibull distribution in this random number:
-    ttl = random.randint(TOTAL_TIME-(TOTAL_TIME/8),TOTAL_TIME+(TOTAL_TIME/4))
+    ttl = int(round(np.random.weibull(WEIBULL_SHAPE) * TOTAL_TIME))
+    print("ttl = %d" % (ttl))
     alias = "127.0.0.1:"+str(port)
 
     #run netcat
     proc = run("nc 127.0.0.1 {0}".format(playerPort), DEVNULL, alias, ttl, peertype)
-                         
+
     port, playerPort = port + 1, playerPort + 1
 
-   
+
 
 def check(x):
     with open("./strpe-testing/splitter.log") as fh:
@@ -161,7 +162,7 @@ def churn():
             addRegularOrMaliciousPeer()
 
         # Arrival of trusted peers
-        r = random.randint(1,100)    
+        r = random.randint(1,100)
         if r <= P_IN and nTrusted>0:
             print Color.green, "In: <--", Color.none, "TP 127.0.0.1:{0}".format(port)
             with open("trusted.txt", "a") as fh:
@@ -172,7 +173,7 @@ def churn():
             nPeersTeam+=1
             runPeer(True, False, True)
 
-        
+
         checkForBufferTimes()
 
         # Malicious peers expelled by splitter (using the TP information)
@@ -198,7 +199,7 @@ def churn():
 
                         if p[3] == "MP":
                             nMalicious+=1
-                    
+
                         nPeersTeam-=1
 
             # Based on BFR
@@ -207,19 +208,19 @@ def churn():
                 if (p[1] in angry_peers):
                     if p[1] not in angry_peers_retired:
                         print Color.red, "Out: -->", p[3], p[1], "(by BFR_min)", Color.none
-                        
+
                         p[0].kill()
 
                         angry_peers_retired.append(p[1])
-                        
+
                         if p[3] == "TP":
                             nTrusted+=1
 
                         if p[3] == "MP":
                             nMalicious+=1
-                            
+
                         nPeersTeam-=1
-        
+
         #print "Timer: "+ str(TIMER)
         #time.sleep(0.5)
 
@@ -228,34 +229,34 @@ def checkForBufferTimes():
     global BFR_min, angry_peers, buffer_values
     fileList = glob.glob("./strpe-testing/peer*.log")
     for f in fileList:
-        
+
         regex_peer = re.compile("./strpe-testing/peer(\d*).log")
         result = regex_peer.match(f)
         if result != None:
             peer_str = "127.0.0.1:"+str(int(result.group(1)))
-                
+
         if peer_str not in buffer_values:
             buffer_values[peer_str] = 1
 
         buffer_filling = getLastBufferFor(f)
-        if buffer_filling != None: 
+        if buffer_filling != None:
             BF = (buffer_filling/0.5)
             buffer_values[peer_str] = alpha * BF + (1-alpha) * buffer_values[peer_str]
-        
+
         if (buffer_values[peer_str] != 0) and (buffer_values[peer_str] < BFR_min):
             if peer_str not in angry_peers:
                 angry_peers.append(peer_str)
-    
+
 def getLastBufferFor(inFile):
     if os.path.getsize(inFile) == 0:
         return None
-    
+
     regex_filling = re.compile("(\d*.\d*)\tbuffer\sfilling\s(\d*.\d*)")
     filling = 0.5
     with open(inFile) as f:
         for line in f:
             pass
-        
+
     result = regex_filling.match(line)
     if result != None:
         filling = float(result.group(2))
@@ -344,13 +345,13 @@ def main(args):
     random.seed(SEED)
 
     try:
-        opts, args = getopt.getopt(args, "n:t:i:m:z:s:d:c")
+        opts, args = getopt.getopt(args, "n:t:i:m:z:s:d:cw:")
     except getopt.GetoptError:
         usage()
         sys.exit(2)
 
     ds = False
-    global nPeers, nTrusted, nMalicious, sizeTeam, nPeersTeam, TOTAL_TIME
+    global nPeers, nTrusted, nMalicious, sizeTeam, nPeersTeam, TOTAL_TIME, WEIBULL_SHAPE
     nPeers = 2
     nTrusted = nInitialTrusted = 1
     nMalicious = 0
@@ -379,9 +380,11 @@ def main(args):
                 shutil.rmtree("./strpe-testing")
             except:
                 pass
-            
+
             print("temp files removed")
             sys.exit()
+        elif opt == "-w":
+            WEIBULL_SHAPE = float(arg)
 
     print 'running initial team with {0} peers ({1} trusted)'.format(nPeers, nInitialTrusted)
 
@@ -389,18 +392,18 @@ def main(args):
     nPeersTeam = nPeers + nInitialTrusted
     nTrusted = nTrusted - nInitialTrusted
     checkdir()
-    
+
     initializeTeam(nPeers, nInitialTrusted)
 
     print "Team Initialized"
-    
+
     for i in xrange(10,0,-1):
         print "Wait for buffering",
         print str(i)+'  \r',
         sys.stdout.flush()
         time.sleep(1)
-        
-    
+
+
     #time.sleep(10) # time for all peers buffering
     saveLastRound()
     print "LAST_ROUND_NUMBER", LAST_ROUND_NUMBER
@@ -433,4 +436,6 @@ if __name__ == "__main__":
     try:
         sys.exit(main(sys.argv[1:]))
     except KeyboardInterrupt:
+        killall()
+    finally:
         killall()
