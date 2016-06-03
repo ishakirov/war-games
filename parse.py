@@ -125,7 +125,7 @@ def main(args):
                 if startParse:
                     info = calcAverageBufferCorrectnes(ts)
                     if (info[0] != None and info[1]!=None):
-                        print "{0}\t{1}\t{2}\t{3}\t{4}\t{5}\t{6}\t{7}".format(currentRound - roundOffset + 1, len(peers) - malicious - trusted, malicious, trusted, currentTeamSize, info[0], info[1], (1-float(info[2])/float(currentTeamSize))*0.5)
+                        print "{0}\t{1}\t{2}\t{3}\t{4}\t{5}\t{6}\t{7}".format(currentRound - roundOffset + 1, len(peers) - malicious - trusted, malicious, trusted, currentTeamSize, info[0], info[1], (1-float(info[2])/float(currentTeamSize)))
     return 0
 
 if __name__ == "__main__":

@@ -430,6 +430,9 @@ def main(args):
     run("gnuplot -e \"filename='"+path+"'\" plot_team.gp")
     run("gnuplot -e \"filename='"+path+"'\" plot_buffer.gp")
     run("gnuplot -e \"filename='"+path+"'\" plot_fullness.gp")
+
+    raw_input("Press Enter to exit...")
+
     return 0
 
 if __name__ == "__main__":
