@@ -7,10 +7,8 @@ reset
 #set output 'plotting_data1.png'
 
 # svg
-#set terminal svg size 800,600 fname 'Verdana, Helvetica, Arial, sans-serif' fsize '10'
-#set output 'a.svg'
-
-set terminal x11
+set terminal svg size 800,600 fname 'Verdana, Helvetica, Arial, sans-serif' fsize '10'
+set output 'team.svg'
 
 # color definitions
 set border linewidth 1.5
@@ -26,5 +24,8 @@ set tics scale 1
 f1=filename
 
 plot for [i=2:4] f1 u 1:i w lp title columnheader(i) ls i-1
+
+set terminal x11
+replot
 
 pause -1

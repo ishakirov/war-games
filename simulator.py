@@ -3,6 +3,7 @@
 
 import os, sys, getopt, shutil
 import time
+import datetime
 import random
 import shlex, subprocess
 import re
@@ -12,7 +13,7 @@ from color import Color
 import numpy as np
 
 processes = []
-
+experiment_path = "" #automatically assigned
 DEVNULL = open(os.devnull, 'wb')
 SEED = 12345678
 
@@ -27,6 +28,7 @@ LAST_ROUND_NUMBER = 0
 
 INIT_TIME = 0
 TOTAL_TIME = 60
+WEIBULL_TIME = 100
 
 trusted_peers = []
 mp_expelled_by_tps = []
@@ -45,8 +47,11 @@ alpha = 0.9
 WEIBULL_SHAPE = 5.
 
 def checkdir():
-    if not os.path.exists("./strpe-testing"):
-        os.mkdir("./strpe-testing")
+    global experiment_path
+    experiment_path = datetime.datetime.now().strftime("%d%m%y%H%M") + "n" + str(nPeers) + "t" +  str(nTrusted) + "m" + str(nMalicious) + "z" + str(sizeTeam) + "d" + str(TOTAL_TIME)
+    
+    if not os.path.exists(experiment_path):
+        os.mkdir(experiment_path)
 
 def usage():
     print "args error"
@@ -70,14 +75,15 @@ def runStream():
     time.sleep(0.5)
 
 def runSplitter(ds = False):
+    global experiment_path
     prefix = ""
     if ds: prefix = "ds"
-    run("./splitter.py --port 8001 --source_port 8080 --max_chunk_loss 16 --strpeds_log strpe-testing/splitter.log --p_mpl "+str(P_MPL), open("strpe-testing/splitter.out", "w"))
+    run("./splitter.py --port 8001 --source_port 8080 --max_chunk_loss 16 --strpeds_log " + experiment_path + "/splitter.log --p_mpl " + str(P_MPL), open("{0}/splitter.out".format(experiment_path), "w"))
 
     time.sleep(0.25)
 
 def runPeer(trusted = False, malicious = False, ds = False):
-    global port, playerPort, TOTAL_TIME, DEVNULL, MPTR, WEIBULL_SHAPE
+    global port, playerPort, TOTAL_TIME, DEVNULL, MPTR, WEIBULL_SHAPE, WEIBULL_TIME, experiment_path
     #run peer
     runStr = "./peer.py --splitter_port 8001 --use_localhost --port {0} --player_port {1}".format(port, playerPort)
 
@@ -89,14 +95,14 @@ def runPeer(trusted = False, malicious = False, ds = False):
         peertype = "MP"
         runStr += " --malicious --persistent --mptr {0}".format(MPTR)
     if not malicious:
-         runStr += " --strpeds_log ./strpe-testing/peer{0}.log".format(port)
+         runStr += " --strpeds_log " + experiment_path + "/peer{0}.log".format(port)
 
-    run(runStr, open("./strpe-testing/peer{0}.out".format(port), "w"), "127.0.0.1:"+str(port), None , peertype)
+    run(runStr, open("{0}/peer{1}.out".format(experiment_path,port), "w"), "127.0.0.1:"+str(port), None , peertype)
     time.sleep(0.25)
 
     #Weibull distribution in this random number:
-    ttl = int(round(np.random.weibull(WEIBULL_SHAPE) * TOTAL_TIME))
-    print("ttl = %d" % (ttl))
+    ttl = int(round(np.random.weibull(WEIBULL_SHAPE) * WEIBULL_TIME))
+    print(" / ttl = %d" % (ttl))
     alias = "127.0.0.1:"+str(port)
 
     #run netcat
@@ -107,7 +113,8 @@ def runPeer(trusted = False, malicious = False, ds = False):
 
 
 def check(x):
-    with open("./strpe-testing/splitter.log") as fh:
+    global experiment_path
+    with open("{0}/splitter.log".format(experiment_path)) as fh:
         for line in fh:
             pass
         result = re.match("(\d*.\d*)\t(\d*)\s(\d*).*", line)
@@ -139,7 +146,7 @@ def initializeTeam(nPeers, nInitialTrusted):
     print "running peers"
 
     for _ in range(nInitialTrusted):
-        print Color.green, "In: <--", Color.none, "TP 127.0.0.1:{0}".format(port)
+        print Color.green, "In: <--", Color.none, "TP 127.0.0.1:{0}".format(port),
         with open("trusted.txt", "a") as fh:
             fh.write('127.0.0.1:{0}\n'.format(port))
             fh.close()
@@ -147,7 +154,7 @@ def initializeTeam(nPeers, nInitialTrusted):
         runPeer(True, False, True)
 
     for _ in range(nPeers):
-       print Color.green, "In: <--", Color.none, "WIP 127.0.0.1:{0}".format(port)
+       print Color.green, "In: <--", Color.none, "WIP 127.0.0.1:{0}".format(port),
        runPeer(False, False, True)
 
 def churn():
@@ -164,7 +171,7 @@ def churn():
         # Arrival of trusted peers
         r = random.randint(1,100)
         if r <= P_IN and nTrusted>0:
-            print Color.green, "In: <--", Color.none, "TP 127.0.0.1:{0}".format(port)
+            print Color.green, "In: <--", Color.none, "TP 127.0.0.1:{0}".format(port),
             with open("trusted.txt", "a") as fh:
                 fh.write('127.0.0.1:{0}\n'.format(port))
                 fh.close()
@@ -226,11 +233,11 @@ def churn():
 
 
 def checkForBufferTimes():
-    global BFR_min, angry_peers, buffer_values
-    fileList = glob.glob("./strpe-testing/peer*.log")
+    global BFR_min, angry_peers, buffer_values, experiment_path
+    fileList = glob.glob("{0}/peer*.log".format(experiment_path))
     for f in fileList:
 
-        regex_peer = re.compile("./strpe-testing/peer(\d*).log")
+        regex_peer = re.compile("{0}/peer(\d*).log".format(experiment_path))
         result = regex_peer.match(f)
         if result != None:
             peer_str = "127.0.0.1:"+str(int(result.group(1)))
@@ -272,7 +279,7 @@ def addRegularOrMaliciousPeer():
                 with open("malicious.txt", "a") as fh:
                     fh.write('127.0.0.1:{0}\n'.format(port))
                     fh.close()
-                print Color.green, "In: <--", Color.none, "MP 127.0.0.1:{0}".format(port)
+                print Color.green, "In: <--", Color.none, "MP 127.0.0.1:{0}".format(port),
 	        nMalicious-=1
 	        nPeersTeam+=1
                 runPeer(False, True, True)
@@ -280,7 +287,7 @@ def addRegularOrMaliciousPeer():
             #with open("regular.txt", "a") as fh:
             #    fh.write('127.0.0.1:{0}\n'.format(port))
             #    fh.close()
-            print Color.green, "In: <--", Color.none, "WIP 127.0.0.1:{0}".format(port)
+            print Color.green, "In: <--", Color.none, "WIP 127.0.0.1:{0}".format(port),
 	    nPeersTeam+=1
             runPeer(False, False, True)
 
@@ -293,7 +300,8 @@ def addRegularOrMaliciousPeer():
     print '\r',
 
 def checkForTrusted():
-    with open("./strpe-testing/splitter.log") as fh:
+    global experiment_path
+    with open("{0}/splitter.log".format(experiment_path)) as fh:
         for line in fh:
             pass
         result = re.match("(\d*.\d*)\t(\d*)\s(\d*)\s(.*)", line)
@@ -310,8 +318,8 @@ def checkForTrusted():
     return True
 
 def checkForMaliciousExpelled():
-    global mp_expelled_by_tps
-    with open("./strpe-testing/splitter.log") as fh:
+    global mp_expelled_by_tps, experiment_path
+    with open("{0}/splitter.log".format(experiment_path)) as fh:
         for line in fh:
             result = re.match("(\d*)\tbad peer ([0-9]+(?:\.[0-9]+){3}:[0-9]+)\((.*?)\)", line)
             if result != None and result.group(2) not in mp_expelled_by_tps:
@@ -325,8 +333,8 @@ def saveLastRound():
     INIT_TIME = time.time()
 
 def findLastRound():
-    global iteration
-    with open("./strpe-testing/splitter.log") as fh:
+    global iteration, experiment_path
+    with open("{0}/splitter.log".format(experiment_path)) as fh:
         for line in fh:
             pass
         result = re.match("(\d*.\d*)\t(\d*)\s(\d*).*", line)
@@ -351,7 +359,7 @@ def main(args):
         sys.exit(2)
 
     ds = False
-    global nPeers, nTrusted, nMalicious, sizeTeam, nPeersTeam, TOTAL_TIME, WEIBULL_SHAPE
+    global nPeers, nTrusted, nMalicious, sizeTeam, nPeersTeam, TOTAL_TIME, WEIBULL_SHAPE, experiment_path
     nPeers = 2
     nTrusted = nInitialTrusted = 1
     nMalicious = 0
@@ -373,11 +381,7 @@ def main(args):
             TOTAL_TIME = int(arg)
         elif opt == "-c":
             try:
-                os.remove("trusted.txt")
-                os.remove("malicious.txt")
-                os.remove("attacked.txt")
-                os.remove("regular.txt")
-                shutil.rmtree("./strpe-testing")
+                shutil.rmtree(experiment_path)
             except:
                 pass
 
@@ -416,20 +420,31 @@ def main(args):
     print "Rounds= " + str(currentRound-LAST_ROUND_NUMBER) + " TIME= " + str(TOTAL_TIME) + " LRN= " + str(LAST_ROUND_NUMBER)
 
     killall()
-
+  
     print "******************* Parsing Results  ********************"
-    path = "./strpe-testing/sample.dat"
+    path = experiment_path + "/sample.dat"
     print "Target file: "+path
     #process = run("./parse.py -r "+str(LAST_ROUND_NUMBER), open(path,"w"))
     #Initial round is not necessary because log is recorded after buffering.
-    process = run("./parse.py", open(path,"w"))
+    process = run("./parse.py -d "+ experiment_path, open(path,"w"))
     process.wait()
     print "Done!"
-
+    
     print "******************* Plotting Results  *******************"
     run("gnuplot -e \"filename='"+path+"'\" plot_team.gp")
     run("gnuplot -e \"filename='"+path+"'\" plot_buffer.gp")
     run("gnuplot -e \"filename='"+path+"'\" plot_fullness.gp")
+
+    time.sleep(1)
+    
+    print "************** Moving Files to Results  *****************"
+    os.rename("trusted.txt", experiment_path + "/trusted.txt")
+    os.rename("attacked.txt", experiment_path + "/attacked.txt")
+    os.rename("regular.txt", experiment_path + "/regular.txt")
+    os.rename("malicious.txt", experiment_path + "/malicious.txt")
+    os.rename("team.svg", experiment_path + "/team.svg")
+    os.rename("buffer.svg", experiment_path + "/buffer.svg")
+    os.rename("fullness.svg", experiment_path + "/fullness.svg")
 
     raw_input("Press Enter to exit...")
 

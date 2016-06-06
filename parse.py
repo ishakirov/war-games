@@ -10,12 +10,14 @@ min_buffer_correctness = 1
 max_buffer_filling = 0
 min_buffer_filling = 1
 
+experiment_path = ""
+
 def usage():
     print ""
     return
 
 def calcAverageBufferCorrectnes(roundTime):
-    fileList = glob.glob("./strpe-testing/peer*.log")
+    fileList = glob.glob("{0}/peer*.log".format(experiment_path))
     correctnesSum = fillingSum = 0.0
     losses = 0
     NN = 0
@@ -83,22 +85,25 @@ def calcAverageInFile(inFile, roundTime):
     
 
 def main(args):
+    global experiment_path
     inFile = ""
     nPeers = nMalicious = lastRound = 0
     try:
-        opts, args = getopt.getopt(args, "r:")
+        opts, args = getopt.getopt(args, "r:d:")
     except getopt.GetoptError:
         usage()
         sys.exit(2)
     for opt, arg in opts:
         if opt == "-r":
             lastRound = int(arg)
+        elif opt == "-d":
+            experiment_path = str(arg)
 
     regex = re.compile("(\d*)\t(\d*)\s(\d*)\s(.*)")
     startParse = False
     roundOffset = 0
     print "round\t#WIPs\t#MPs\t#TPs\tteamsize\tcorrectness\tfilling\tfullness"
-    with open("./strpe-testing/splitter.log") as f:
+    with open("{0}/splitter.log".format(experiment_path)) as f:
         for line in f:
             result = regex.match(line)
             if result != None:
