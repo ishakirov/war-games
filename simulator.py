@@ -28,7 +28,6 @@ LAST_ROUND_NUMBER = 0
 
 INIT_TIME = 0
 TOTAL_TIME = 60
-WEIBULL_TIME = 100
 
 trusted_peers = []
 mp_expelled_by_tps = []
@@ -40,11 +39,12 @@ P_IN = 50
 P_OUT = 50
 P_WIP = 50
 P_MP = 100 - P_WIP
-P_MPL = 60
+P_MPL = 50
 MPTR = 5
 BFR_min = 0.75
 alpha = 0.9
 WEIBULL_SHAPE = 5.
+WEIBULL_TIME = 300
 
 def checkdir():
     global experiment_path
@@ -420,6 +420,17 @@ def main(args):
     print "Rounds= " + str(currentRound-LAST_ROUND_NUMBER) + " TIME= " + str(TOTAL_TIME) + " LRN= " + str(LAST_ROUND_NUMBER)
 
     killall()
+
+    print "***************** Summary of Parameters ******************"
+    print "P_IN = " + str(P_IN),
+    print "P_OUT = " + str(P_OUT),
+    print "P_WIP = " + str(P_WIP),
+    print "P_MPL = " + str(P_MPL),
+    print "MPTR = " + str(MPTR)
+    print "BRF_min = " + str(BFR_min),
+    print "alpha = " + str(alpha),
+    print "WEIBULL_SHAPE = " + str(WEIBULL_SHAPE),
+    print "WEIBULL_TIME = " + str(WEIBULL_TIME)
   
     print "******************* Parsing Results  ********************"
     path = experiment_path + "/sample.dat"
