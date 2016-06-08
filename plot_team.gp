@@ -21,6 +21,9 @@ set style line 3 lc rgb '#0060ad' lt 1 lw 2 pt 5 ps 1 # --- blue for TPs
 set ytics 1
 set tics scale 1
 
+set xlabel "Number of Round"
+set ylabel "Number of peers"
+
 f1=filename
 
 plot for [i=2:4] f1 u 1:i w lp title columnheader(i) ls i-1

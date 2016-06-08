@@ -16,8 +16,12 @@ set style line 1 lc rgb '#A4A4A4' lt 1 lw 2 pt 7 ps 1 # --- gray for buffer
 
 #unset key
 
-set ytics 1
+set ytics 0.1
+set yrange[0:1]
 set tics scale 1
+
+set xlabel "Number of Round"
+set ylabel "Buffer Status (receiving time)"
 
 f1=filename
 

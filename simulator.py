@@ -17,7 +17,7 @@ experiment_path = "" #automatically assigned
 DEVNULL = open(os.devnull, 'wb')
 SEED = 12345678
 
-nPeers = nTrusted = nMalicious = sizeTeam = nPeersTeam = 0
+nPeers = nTrusted = nMalicious = sizeTeam = nPeersTeam = nInitialTrusted = 0
 
 port = 60000
 playerPort = 61000
@@ -47,8 +47,8 @@ WEIBULL_SHAPE = 5.
 WEIBULL_TIME = 300
 
 def checkdir():
-    global experiment_path
-    experiment_path = datetime.datetime.now().strftime("%d%m%y%H%M") + "n" + str(nPeers) + "t" +  str(nTrusted) + "m" + str(nMalicious) + "z" + str(sizeTeam) + "d" + str(TOTAL_TIME)
+    global experiment_path, nPeersTeam, nTrusted, nMalicious, sizeTeam, TOTAL_TIME
+    experiment_path = datetime.datetime.now().strftime("%d%m%y%H%M") + "n" + str(nPeersTeam) + "t" +  str(nTrusted+nInitialTrusted) + "m" + str(nMalicious) + "z" + str(sizeTeam) + "d" + str(TOTAL_TIME)
     
     if not os.path.exists(experiment_path):
         os.mkdir(experiment_path)
@@ -359,7 +359,7 @@ def main(args):
         sys.exit(2)
 
     ds = False
-    global nPeers, nTrusted, nMalicious, sizeTeam, nPeersTeam, TOTAL_TIME, WEIBULL_SHAPE, experiment_path
+    global nPeers, nTrusted, nMalicious, sizeTeam, nPeersTeam, TOTAL_TIME, WEIBULL_SHAPE, nInitialTrusted, experiment_path
     nPeers = 2
     nTrusted = nInitialTrusted = 1
     nMalicious = 0
