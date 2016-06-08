@@ -44,7 +44,7 @@ MPTR = 5
 BFR_min = 0.75
 alpha = 0.9
 WEIBULL_SHAPE = 5.
-WEIBULL_TIME = 300
+WEIBULL_TIME = 15
 
 def checkdir():
     global experiment_path, nPeersTeam, nTrusted, nMalicious, sizeTeam, TOTAL_TIME
@@ -60,7 +60,6 @@ def run(runStr, out = DEVNULL, alias = "", ttl = None, entityType = ""):
     proc = subprocess.Popen(shlex.split(runStr), stdout=out, stderr=out)
     processes.append((proc, alias, ttl, entityType))
     return proc
-
 
 def killall():
     for proc in processes:
@@ -97,16 +96,18 @@ def runPeer(trusted = False, malicious = False, ds = False):
     if not malicious:
          runStr += " --strpeds_log " + experiment_path + "/peer{0}.log".format(port)
 
-    run(runStr, open("{0}/peer{1}.out".format(experiment_path,port), "w"), "127.0.0.1:"+str(port), None , peertype)
-    time.sleep(0.25)
 
     #Weibull distribution in this random number:
-    ttl = int(round(np.random.weibull(WEIBULL_SHAPE) * WEIBULL_TIME))
+    ttl = int(round(np.random.weibull(WEIBULL_SHAPE) * WEIBULL_TIME)) + int(time.time()-INIT_TIME)
     print(" / ttl = %d" % (ttl))
     alias = "127.0.0.1:"+str(port)
+    
+    run(runStr, open("{0}/peer{1}.out".format(experiment_path,port), "w"), "127.0.0.1:"+str(port), ttl , peertype)
+    time.sleep(1)
+
 
     #run netcat
-    proc = run("nc 127.0.0.1 {0}".format(playerPort), DEVNULL, alias, ttl, peertype)
+    #proc = run("nc 127.0.0.1 {0}".format(playerPort), DEVNULL, alias, ttl, peertype)
 
     port, playerPort = port + 1, playerPort + 1
 
@@ -198,7 +199,7 @@ def churn():
             if (r <= P_OUT) and (p[0].poll() == None):
                 if p[2] != None and p[2] <= (time.time()-INIT_TIME):
                     if p[1] not in mp_expelled_by_tps:
-                        print Color.red, "Out:-->", Color.none, p[3], p[1]
+                        print Color.red, "Out:-->", Color.none, p[3], p[1], nPeersTeam
                         p[0].kill()
 
                         if p[3] == "TP":
@@ -328,9 +329,8 @@ def checkForMaliciousExpelled():
     return None
 
 def saveLastRound():
-    global LAST_ROUND_NUMBER, INIT_TIME
+    global LAST_ROUND_NUMBER
     LAST_ROUND_NUMBER = findLastRound()
-    INIT_TIME = time.time()
 
 def findLastRound():
     global iteration, experiment_path
@@ -359,7 +359,7 @@ def main(args):
         sys.exit(2)
 
     ds = False
-    global nPeers, nTrusted, nMalicious, sizeTeam, nPeersTeam, TOTAL_TIME, WEIBULL_SHAPE, nInitialTrusted, experiment_path
+    global nPeers, nTrusted, nMalicious, sizeTeam, nPeersTeam, TOTAL_TIME, WEIBULL_SHAPE, nInitialTrusted, experiment_path, INIT_TIME
     nPeers = 2
     nTrusted = nInitialTrusted = 1
     nMalicious = 0
@@ -397,6 +397,8 @@ def main(args):
     nTrusted = nTrusted - nInitialTrusted
     checkdir()
 
+    INIT_TIME = time.time()
+    
     initializeTeam(nPeers, nInitialTrusted)
 
     print "Team Initialized"
