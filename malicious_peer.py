@@ -186,7 +186,8 @@ class MaliciousPeer(PeerSTRPEDS):
             # {{{ A new chunk has arrived and the
             # previous must be forwarded to next peer of the
             # list of peers.
-            if ( self.receive_and_feed_counter < len(self.GetPeerList()) and ( self.receive_and_feed_previous != '') ):
+            empty = struct.pack("=H1024s40s40sI", 0, ("").encode("utf8"), ("").encode("utf8"), ("").encode("utf8"), 0)
+            if ( self.receive_and_feed_counter < len(self.GetPeerList()) and ( self.receive_and_feed_previous != empty) ):
                 # {{{ Send the previous chunk in congestion avoiding mode.
 
                 peer = self.GetPeerList()[self.receive_and_feed_counter]

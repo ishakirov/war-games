@@ -44,7 +44,7 @@ MPTR = 5
 BFR_min = 0.75
 alpha = 0.9
 WEIBULL_SHAPE = 5.
-WEIBULL_TIME = 15
+WEIBULL_TIME = 60
 
 def checkdir():
     global experiment_path, nPeersTeam, nTrusted, nMalicious, sizeTeam, TOTAL_TIME
@@ -77,7 +77,7 @@ def runSplitter(ds = False):
     global experiment_path
     prefix = ""
     if ds: prefix = "ds"
-    run("./splitter.py --port 8001 --source_port 8080 --max_chunk_loss 16 --strpeds_log " + experiment_path + "/splitter.log --p_mpl " + str(P_MPL), open("{0}/splitter.out".format(experiment_path), "w"))
+    run("./splitter.py --port 8001 --source_port 8080 --max_chunk_loss 5 --strpeds_log " + experiment_path + "/splitter.log --p_mpl " + str(P_MPL), open("{0}/splitter.out".format(experiment_path), "w"))
 
     time.sleep(0.25)
 
@@ -153,7 +153,6 @@ def initializeTeam(nPeers, nInitialTrusted):
             fh.close()
         trusted_peers.append('127.0.0.1:{0}'.format(port))
         runPeer(True, False, True)
-
     for _ in range(nPeers):
        print Color.green, "In: <--", Color.none, "WIP 127.0.0.1:{0}".format(port),
        runPeer(False, False, True)
@@ -199,7 +198,8 @@ def churn():
             if (r <= P_OUT) and (p[0].poll() == None):
                 if p[2] != None and p[2] <= (time.time()-INIT_TIME):
                     if p[1] not in mp_expelled_by_tps:
-                        print Color.red, "Out:-->", Color.none, p[3], p[1], nPeersTeam
+                        print Color.red, "Out:-->", Color.none, p[3], p[1]
+                        
                         p[0].kill()
 
                         if p[3] == "TP":
@@ -325,6 +325,10 @@ def checkForMaliciousExpelled():
             result = re.match("(\d*)\tbad peer ([0-9]+(?:\.[0-9]+){3}:[0-9]+)\((.*?)\)", line)
             if result != None and result.group(2) not in mp_expelled_by_tps:
                 mp_expelled_by_tps.append(result.group(2))
+                for p in processes:
+                    if (p[1] == result.group(2)) and (p[0].poll() == None):
+                        p[0].kill()
+                        
                 return result.group(2) +" ("+ result.group(3)+")"
     return None
 
