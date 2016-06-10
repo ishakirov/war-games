@@ -290,7 +290,8 @@ class Peer():
         peer.BufferData()
 
         _print_("RUN")
-        threading.Thread(target=peer.Run, args=()).start()
+        #threading.Thread(target=peer.Run, args=()).start()
+        peer.Run()
         #self.console(peer)
 
                 

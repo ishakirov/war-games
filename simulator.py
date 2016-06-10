@@ -31,6 +31,7 @@ TOTAL_TIME = 60
 
 trusted_peers = []
 mp_expelled_by_tps = []
+tp_expelled_by_splitter = []
 angry_peers = []
 angry_peers_retired = []
 buffer_values = {}
@@ -40,6 +41,7 @@ P_OUT = 50
 P_WIP = 50
 P_MP = 100 - P_WIP
 P_MPL = 50
+P_TPL = 50
 MPTR = 5
 BFR_min = 0.75
 alpha = 0.9
@@ -77,9 +79,9 @@ def runSplitter(ds = False):
     global experiment_path
     prefix = ""
     if ds: prefix = "ds"
-    run("./splitter.py --port 8001 --source_port 8080 --max_chunk_loss 5 --strpeds_log " + experiment_path + "/splitter.log --p_mpl " + str(P_MPL), open("{0}/splitter.out".format(experiment_path), "w"))
+    run("./splitter.py --port 8001 --source_port 8080 --max_chunk_loss 2 --buffer_size 512 --strpeds_log " + experiment_path + "/splitter.log --p_mpl " + str(P_MPL) + " --p_tpl " + str(P_TPL), open("{0}/splitter.out".format(experiment_path), "w"))
 
-    time.sleep(0.25)
+    time.sleep(0.5)
 
 def runPeer(trusted = False, malicious = False, ds = False):
     global port, playerPort, TOTAL_TIME, DEVNULL, MPTR, WEIBULL_SHAPE, WEIBULL_TIME, experiment_path
@@ -184,10 +186,13 @@ def churn():
         checkForBufferTimes()
 
         # Malicious peers expelled by splitter (using the TP information)
-        anyMPexpelled = checkForMaliciousExpelled()
-        if anyMPexpelled != None:
-            print Color.red, "Out: --> MP", anyMPexpelled, Color.none
-            nMalicious+=1
+        anyExpelled = checkForPeersExpelled()
+        if anyExpelled[0] != None:
+            print Color.red, "Out: -->", anyExpelled[0], anyExpelled[1], Color.none
+            if anyExpelled[0] == "MP":
+                nMalicious+=1
+            else:
+                nTrusted+=1
 	    nPeersTeam-=1
 
         # Departures of peers
@@ -259,15 +264,15 @@ def getLastBufferFor(inFile):
     if os.path.getsize(inFile) == 0:
         return None
 
-    regex_filling = re.compile("(\d*.\d*)\tbuffer\sfilling\s(\d*.\d*)")
+    regex_fullness = re.compile("(\d*.\d*)\tbuffer\sfullness\s(\d*.\d*)")
     filling = 0.5
     with open(inFile) as f:
         for line in f:
             pass
 
-    result = regex_filling.match(line)
+    result = regex_fullness.match(line)
     if result != None:
-        filling = float(result.group(2))
+        fullness = float(result.group(2))
 
     return filling
 
@@ -318,19 +323,27 @@ def checkForTrusted():
 
     return True
 
-def checkForMaliciousExpelled():
-    global mp_expelled_by_tps, experiment_path
+def checkForPeersExpelled():
+    global mp_expelled_by_tps, experiment_path, tp_expelled_by_splitter
+    peer_type = "WIP"
     with open("{0}/splitter.log".format(experiment_path)) as fh:
         for line in fh:
             result = re.match("(\d*)\tbad peer ([0-9]+(?:\.[0-9]+){3}:[0-9]+)\((.*?)\)", line)
-            if result != None and result.group(2) not in mp_expelled_by_tps:
-                mp_expelled_by_tps.append(result.group(2))
-                for p in processes:
-                    if (p[1] == result.group(2)) and (p[0].poll() == None):
-                        p[0].kill()
+            if result != None:
+                if result.group(2) in trusted_peers:
+                    if result.group(2) not in tp_expelled_by_splitter:
+                        peer_type = "TP"
+                        tp_expelled_by_splitter.append(result.group(2))
+                elif result.group(2) not in mp_expelled_by_tps:
+                    peer_type = "MP"
+                    mp_expelled_by_tps.append(result.group(2))
+                if peer_type != "WIP":   
+                    for p in processes:
+                        if (p[1] == result.group(2)) and (p[0].poll() == None):
+                            p[0].kill()
                         
-                return result.group(2) +" ("+ result.group(3)+")"
-    return None
+                    return (peer_type,result.group(2) +" ("+ result.group(3)+")")
+    return (None, None)
 
 def saveLastRound():
     global LAST_ROUND_NUMBER
