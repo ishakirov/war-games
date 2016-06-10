@@ -13,6 +13,7 @@
 
 from __future__ import print_function
 import sys
+import signal
 import socket
 import struct
 import time
@@ -42,6 +43,8 @@ ADDR = 0
 PORT = 1
 
 class Peer():
+
+    peer = None
     
     def console(self, peer):
         
@@ -290,13 +293,11 @@ class Peer():
         peer.BufferData()
 
         _print_("RUN")
-        #threading.Thread(target=peer.Run, args=()).start()
-        peer.Run()
+        threading.Thread(target=peer.Run, args=()).start()
         #self.console(peer)
-
-                
-        
+     
 if __name__ == "__main__":
     x = Peer()
+        
 
     

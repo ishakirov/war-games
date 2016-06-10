@@ -205,7 +205,7 @@ def churn():
                     if p[1] not in mp_expelled_by_tps:
                         print Color.red, "Out:-->", Color.none, p[3], p[1]
                         
-                        p[0].kill()
+                        p[0].terminate()
 
                         if p[3] == "TP":
                             nTrusted+=1
