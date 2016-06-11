@@ -34,6 +34,7 @@ mp_expelled_by_tps = []
 tp_expelled_by_splitter = []
 angry_peers = []
 angry_peers_retired = []
+weibull_expelled = []
 buffer_values = {}
 
 P_IN = 50
@@ -79,7 +80,7 @@ def runSplitter(ds = False):
     global experiment_path
     prefix = ""
     if ds: prefix = "ds"
-    run("./splitter.py --port 8001 --source_port 8080 --max_chunk_loss 2 --buffer_size 512 --strpeds_log " + experiment_path + "/splitter.log --p_mpl " + str(P_MPL) + " --p_tpl " + str(P_TPL), open("{0}/splitter.out".format(experiment_path), "w"))
+    run("./splitter.py --port 8001 --source_port 8080 --max_chunk_loss 32 --buffer_size 256 --strpeds_log " + experiment_path + "/splitter.log --p_mpl " + str(P_MPL) + " --p_tpl " + str(P_TPL), open("{0}/splitter.out".format(experiment_path), "w"))
 
     time.sleep(0.5)
 
@@ -182,19 +183,21 @@ def churn():
             nPeersTeam+=1
             runPeer(True, False, True)
 
-
-        checkForBufferTimes()
-
         # Malicious peers expelled by splitter (using the TP information)
         anyExpelled = checkForPeersExpelled()
         if anyExpelled[0] != None:
-            print Color.red, "Out: -->", anyExpelled[0], anyExpelled[1], Color.none
+             
             if anyExpelled[0] == "MP":
+                print Color.red,
                 nMalicious+=1
             else:
+                print Color.purple,
                 nTrusted+=1
+            print "Out: -->", anyExpelled[0], anyExpelled[1], Color.none
 	    nPeersTeam-=1
 
+        checkForBufferTimes()
+            
         # Departures of peers
         for p in processes:
 
@@ -202,11 +205,13 @@ def churn():
             r = random.randint(1,100)
             if (r <= P_OUT) and (p[0].poll() == None):
                 if p[2] != None and p[2] <= (time.time()-INIT_TIME):
-                    if p[1] not in mp_expelled_by_tps:
+                    if p[1] not in mp_expelled_by_tps and p[1] not in weibull_expelled:
                         print Color.red, "Out:-->", Color.none, p[3], p[1]
                         
                         p[0].terminate()
 
+                        weibull_expelled.append(p[1])
+                        
                         if p[3] == "TP":
                             nTrusted+=1
 
@@ -222,7 +227,7 @@ def churn():
                     if p[1] not in angry_peers_retired:
                         print Color.red, "Out: -->", p[3], p[1], "(by BFR_min)", Color.none
 
-                        p[0].kill()
+                        p[0].terminate()
 
                         angry_peers_retired.append(p[1])
 

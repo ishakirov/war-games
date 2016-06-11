@@ -13,6 +13,7 @@
 
 from __future__ import print_function
 import sys
+import time
 import signal
 import socket
 import struct
@@ -41,12 +42,12 @@ from malicious_peer import MaliciousPeer
 # Some useful definitions.
 ADDR = 0
 PORT = 1
+KILL = False
 
 class Peer():
-
-    peer = None
     
     def console(self, peer):
+        global KILL
         
         print("+-----------------------------------------------------+")
         print("| Received = Received kbps, including retransmissions |")
@@ -64,6 +65,11 @@ class Peer():
         last_recvfrom_counter = peer.recvfrom_counter
         
         while peer.IsPlayerAlive():
+
+            if KILL:
+                print("Killing the player...")
+                peer.KillThePlayer()
+            
             kbps_expected_recv = ((peer.GetPlayedChunk() - last_chunk_number) * peer.chunk_size * 8) / 1000
             last_chunk_number = peer.GetPlayedChunk()
             kbps_recvfrom = ((peer.recvfrom_counter - last_recvfrom_counter) * peer.chunk_size * 8) / 1000
@@ -294,9 +300,15 @@ class Peer():
 
         _print_("RUN")
         threading.Thread(target=peer.Run, args=()).start()
-        #self.console(peer)
-     
+        print("threading!")
+        self.console(peer)
+
+def polite_farewell(self,signum):
+    global KILL
+    KILL = True
+    
 if __name__ == "__main__":
+    signal.signal(signal.SIGTERM, polite_farewell)
     x = Peer()
         
 
