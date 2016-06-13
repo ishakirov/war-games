@@ -80,7 +80,7 @@ def runSplitter(ds = False):
     global experiment_path
     prefix = ""
     if ds: prefix = "ds"
-    run("./splitter.py --port 8001 --source_port 8080 --max_chunk_loss 32 --buffer_size 256 --strpeds_log " + experiment_path + "/splitter.log --p_mpl " + str(P_MPL) + " --p_tpl " + str(P_TPL), open("{0}/splitter.out".format(experiment_path), "w"))
+    run("./splitter.py --port 8001 --source_port 8080 --max_chunk_loss 32 --buffer_size " + str(sizeTeam*2) + " --strpeds_log " + experiment_path + "/splitter.log --p_mpl " + str(P_MPL) + " --p_tpl " + str(P_TPL), open("{0}/splitter.out".format(experiment_path), "w"))
 
     time.sleep(0.5)
 
@@ -198,7 +198,7 @@ def churn():
 
         checkForBufferTimes()
             
-        # Departures of peers
+        # Departure of peers
         for p in processes:
 
             # Based on times
@@ -425,7 +425,7 @@ def main(args):
 
     print "Team Initialized"
 
-    for i in xrange(10,0,-1):
+    for i in xrange(5,0,-1):
         print "Wait for buffering",
         print str(i)+'  \r',
         sys.stdout.flush()
@@ -437,11 +437,12 @@ def main(args):
     print "LAST_ROUND_NUMBER", LAST_ROUND_NUMBER
 
     print "----- Simulating Churn -----"
-    churn()
+
+    churn() 
 
     print "******************* End of Simulation *******************"
     currentRound = findLastRound()
-    print "Rounds= " + str(currentRound-LAST_ROUND_NUMBER) + " TIME= " + str(TOTAL_TIME) + " LRN= " + str(LAST_ROUND_NUMBER)
+    print "Rounds= " + str(currentRound) + " TIME= " + str(TOTAL_TIME) + " LRN= " + str(LAST_ROUND_NUMBER)
 
     killall()
 

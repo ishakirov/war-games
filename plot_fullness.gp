@@ -21,7 +21,7 @@ set yrange[0:1]
 set tics scale 1
 
 set xlabel "Number of Round"
-set ylabel "Buffer Status (playback time)"
+set ylabel "Buffer Fullness (playback time)"
 
 f1=filename
 
