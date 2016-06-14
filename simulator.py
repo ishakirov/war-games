@@ -47,7 +47,7 @@ MPTR = 5
 BFR_min = 0.75
 alpha = 0.9
 WEIBULL_SHAPE = 5.
-WEIBULL_TIME = 60
+WEIBULL_TIME = 10
 
 def checkdir():
     global experiment_path, nPeersTeam, nTrusted, nMalicious, sizeTeam, TOTAL_TIME
@@ -80,7 +80,7 @@ def runSplitter(ds = False):
     global experiment_path
     prefix = ""
     if ds: prefix = "ds"
-    run("./splitter.py --port 8001 --source_port 8080 --max_chunk_loss 32 --buffer_size " + str(sizeTeam*2) + " --strpeds_log " + experiment_path + "/splitter.log --p_mpl " + str(P_MPL) + " --p_tpl " + str(P_TPL), open("{0}/splitter.out".format(experiment_path), "w"))
+    run("./splitter.py --port 8001 --source_port 8080 --max_chunk_loss 32 --buffer_size " + str(256) + " --strpeds_log " + experiment_path + "/splitter.log --p_mpl " + str(P_MPL) + " --p_tpl " + str(P_TPL), open("{0}/splitter.out".format(experiment_path), "w"))
 
     time.sleep(0.5)
 
