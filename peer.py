@@ -48,7 +48,7 @@ class Peer():
     
     def console(self, peer):
         global KILL
-        
+        '''
         print("+-----------------------------------------------------+")
         print("| Received = Received kbps, including retransmissions |")
         print("|     Sent = Sent kbps                                |")
@@ -63,13 +63,13 @@ class Peer():
         peer.sendto_counter = 0
         last_sendto_counter = 0
         last_recvfrom_counter = peer.recvfrom_counter
-        
+        '''
         while peer.IsPlayerAlive():
 
             if KILL:
                 print("Killing the player...")
                 peer.KillThePlayer()
-            
+            '''
             kbps_expected_recv = ((peer.GetPlayedChunk() - last_chunk_number) * peer.chunk_size * 8) / 1000
             last_chunk_number = peer.GetPlayedChunk()
             kbps_recvfrom = ((peer.recvfrom_counter - last_recvfrom_counter) * peer.chunk_size * 8) / 1000
@@ -110,6 +110,7 @@ class Peer():
                 else:
                     break
             print()
+            '''
         try:
             if Common.CONSOLE_MODE == False :
                 GObject.idle_add(speed_adapter.update_widget,str(0)+' kbps',str(0)+' kbps',str(0))
