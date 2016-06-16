@@ -101,8 +101,10 @@ def runPeer(trusted = False, malicious = False, ds = False):
 
 
     #Weibull distribution in this random number:
-    ttl = int(round(np.random.weibull(WEIBULL_SHAPE) * WEIBULL_TIME)) + int(time.time()-INIT_TIME)
-    print(" / ttl = %d" % (ttl))
+    ttl = int(round(np.random.weibull(WEIBULL_SHAPE) * WEIBULL_TIME))
+    print " / ttl =", ttl,
+    ttl = ttl + int(time.time()-INIT_TIME)
+    print "("+str(ttl)+")"
     alias = "127.0.0.1:"+str(port)
     
     run(runStr, open("{0}/peer{1}.out".format(experiment_path,port), "w"), "127.0.0.1:"+str(port), ttl , peertype)
@@ -359,7 +361,7 @@ def findLastRound():
     with open("{0}/splitter.log".format(experiment_path)) as fh:
         for line in fh:
             pass
-        result = re.match("(\d*.\d*)\t(\d*)\s(\d*).*", line)
+        result = re.match("(\d*)\t(\d*)\s(\d*).*", line)
         if result != None:
              return int(result.group(2))
     return -1
