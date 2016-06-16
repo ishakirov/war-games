@@ -47,7 +47,7 @@ MPTR = 5
 BFR_min = 0.75
 alpha = 0.9
 WEIBULL_SHAPE = 5.
-WEIBULL_TIME = 10
+WEIBULL_TIME = 60
 
 def checkdir():
     global experiment_path, nPeersTeam, nTrusted, nMalicious, sizeTeam, TOTAL_TIME
