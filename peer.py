@@ -214,7 +214,7 @@ class Peer():
         # A multicast address is always received, even for DBS peers.
         if peer.mcast_addr == "0.0.0.0":
             # {{{ IP unicast mode.
-
+            peer.ListenToTheTeam()
             _print_("Peer DBS enabled")
             peer.ReceiveMyEndpoint()
             peer.ReceiveMagicFlags()
@@ -222,7 +222,7 @@ class Peer():
             peer.ReceiveTheNumberOfPeers()
             _print_("Number of peers in the team (excluding me) =", peer.GetNumberOfPeers())
             _print_("Am I a monitor peer? =", peer.AmIAMonitor())
-            peer.ListenToTheTeam()
+            
             peer.ReceiveTheListOfPeers()
             _print_("List of peers received")
             

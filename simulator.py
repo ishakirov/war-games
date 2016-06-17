@@ -44,7 +44,7 @@ P_MP = 100 - P_WIP
 P_MPL = 50
 P_TPL = 50
 MPTR = 5
-BFR_min = 0.75
+WACLR_max = 0.25
 alpha = 0.9
 WEIBULL_SHAPE = 5.
 WEIBULL_TIME = 60
@@ -246,7 +246,7 @@ def churn():
 
 
 def checkForBufferTimes():
-    global BFR_min, angry_peers, buffer_values, experiment_path
+    global WACLR_max, angry_peers, buffer_values, experiment_path
     fileList = glob.glob("{0}/peer*.log".format(experiment_path))
     for f in fileList:
 
@@ -256,14 +256,15 @@ def checkForBufferTimes():
             peer_str = "127.0.0.1:"+str(int(result.group(1)))
 
         if peer_str not in buffer_values:
-            buffer_values[peer_str] = 1
+            buffer_values[peer_str] = 0.
 
-        buffer_filling = getLastBufferFor(f)
-        if buffer_filling != None:
-            BF = (buffer_filling/0.5)
-            buffer_values[peer_str] = alpha * BF + (1-alpha) * buffer_values[peer_str]
+        CLR = getLastBufferFor(f)
+        if CLR != None:
+            buffer_values[peer_str] = alpha * CLR + (1-alpha) * buffer_values[peer_str]
 
-        if (buffer_values[peer_str] != 0) and (buffer_values[peer_str] < BFR_min):
+        print "[ alpha =", alpha, "CLR =", CLR, "buffer_values =",buffer_values[peer_str], "]",
+            
+        if (buffer_values[peer_str] > WACLR_max):
             if peer_str not in angry_peers:
                 angry_peers.append(peer_str)
 
@@ -272,7 +273,7 @@ def getLastBufferFor(inFile):
         return None
 
     regex_fullness = re.compile("(\d*.\d*)\tbuffer\sfullness\s(\d*.\d*)")
-    filling = 0.5
+    filling = 0.
     with open(inFile) as f:
         for line in f:
             pass
@@ -454,7 +455,7 @@ def main(args):
     print "P_WIP = " + str(P_WIP),
     print "P_MPL = " + str(P_MPL),
     print "MPTR = " + str(MPTR)
-    print "BRF_min = " + str(BFR_min),
+    print "WACLR_max = " + str(WACLR_max),
     print "alpha = " + str(alpha),
     print "WEIBULL_SHAPE = " + str(WEIBULL_SHAPE),
     print "WEIBULL_TIME = " + str(WEIBULL_TIME)
@@ -471,7 +472,7 @@ def main(args):
     print "******************* Plotting Results  *******************"
     run("gnuplot -e \"filename='"+path+"'\" plot_team.gp")
     run("gnuplot -e \"filename='"+path+"'\" plot_buffer.gp")
-    run("gnuplot -e \"filename='"+path+"'\" plot_fullness.gp")
+    run("gnuplot -e \"filename='"+path+"'\" plot_fullness.gp 2> /dev/null")
 
     time.sleep(1)
     
