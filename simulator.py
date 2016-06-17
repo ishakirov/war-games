@@ -273,7 +273,7 @@ def getLastBufferFor(inFile):
         return None
 
     regex_fullness = re.compile("(\d*.\d*)\tbuffer\sfullness\s(\d*.\d*)")
-    filling = 0.
+    fullnes = 0.
     with open(inFile) as f:
         for line in f:
             pass
@@ -282,7 +282,7 @@ def getLastBufferFor(inFile):
     if result != None:
         fullness = float(result.group(2))
 
-    return filling
+    return fullness
 
 def addRegularOrMaliciousPeer():
     global nMalicious, nPeersTeam, P_MP, P_WIP, iteration, nTrusted, TOTAL_TIME, currentRound
