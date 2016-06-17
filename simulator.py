@@ -227,7 +227,7 @@ def churn():
             if (r <= P_OUT) and (p[0].poll() == None):
                 if (p[1] in angry_peers):
                     if p[1] not in angry_peers_retired:
-                        print Color.red, "Out: -->", p[3], p[1], "(by BFR_min)", Color.none
+                        print Color.red, "Out: -->", p[3], p[1], "(by WACLR_max)", Color.none
 
                         p[0].terminate()
 
@@ -256,14 +256,12 @@ def checkForBufferTimes():
             peer_str = "127.0.0.1:"+str(int(result.group(1)))
 
         if peer_str not in buffer_values:
-            buffer_values[peer_str] = 0.
+            buffer_values[peer_str] = 0
 
         CLR = getLastBufferFor(f)
         if CLR != None:
             buffer_values[peer_str] = alpha * CLR + (1-alpha) * buffer_values[peer_str]
 
-        print "[ alpha =", alpha, "CLR =", CLR, "buffer_values =",buffer_values[peer_str], "]",
-            
         if (buffer_values[peer_str] > WACLR_max):
             if peer_str not in angry_peers:
                 angry_peers.append(peer_str)
@@ -273,7 +271,7 @@ def getLastBufferFor(inFile):
         return None
 
     regex_fullness = re.compile("(\d*.\d*)\tbuffer\sfullness\s(\d*.\d*)")
-    fullnes = 0.
+    fullness = 0.
     with open(inFile) as f:
         for line in f:
             pass
