@@ -40,7 +40,7 @@ buffer_values = {}
 P_IN = 50
 P_OUT = 50
 P_WIP = 50
-P_MP = 100 - P_WIP
+P_MP = 100
 P_MPL = 50
 P_TPL = 50
 MPTR = 5
@@ -106,6 +106,9 @@ def runPeer(trusted = False, malicious = False, ds = False):
     ttl = ttl + int(time.time()-INIT_TIME)
     print "("+str(ttl)+")"
     alias = "127.0.0.1:"+str(port)
+
+    if (peertype == "MP"):
+        ttl = None
     
     run(runStr, open("{0}/peer{1}.out".format(experiment_path,port), "w"), "127.0.0.1:"+str(port), ttl , peertype)
     time.sleep(1)
@@ -168,6 +171,8 @@ def churn():
     #while checkForRounds():
     while TOTAL_TIME > (time.time()-INIT_TIME):
 
+        #print("nMalicious: ",nMalicious, "nTrusted: ", nTrusted, "nPeersTeam: ", nPeersTeam)
+        
         # Arrival of regular or malicious peers
         r = random.randint(1,100)
         if r <= P_IN:
@@ -207,7 +212,7 @@ def churn():
             r = random.randint(1,100)
             if (r <= P_OUT) and (p[0].poll() == None):
                 if p[2] != None and p[2] <= (time.time()-INIT_TIME):
-                    if p[1] not in mp_expelled_by_tps and p[1] not in weibull_expelled:
+                    if p[1] not in mp_expelled_by_tps and p[1] not in weibull_expelled and p[1] not in angry_peers_retired:
                         print Color.red, "Out:-->", Color.none, p[3], p[1]
                         
                         p[0].terminate()
@@ -216,9 +221,6 @@ def churn():
                         
                         if p[3] == "TP":
                             nTrusted+=1
-
-                        if p[3] == "MP":
-                            nMalicious+=1
 
                         nPeersTeam-=1
 
@@ -232,12 +234,6 @@ def churn():
                         p[0].terminate()
 
                         angry_peers_retired.append(p[1])
-
-                        if p[3] == "TP":
-                            nTrusted+=1
-
-                        if p[3] == "MP":
-                            nMalicious+=1
 
                         nPeersTeam-=1
 
@@ -263,7 +259,7 @@ def checkForBufferTimes():
             buffer_values[peer_str] = alpha * CLR + (1-alpha) * buffer_values[peer_str]
 
         if (buffer_values[peer_str] > WACLR_max):
-            if peer_str not in angry_peers:
+            if peer_str not in angry_peers and peer_str not in trusted_peers:
                 angry_peers.append(peer_str)
 
 def getLastBufferFor(inFile):
@@ -295,7 +291,9 @@ def addRegularOrMaliciousPeer():
 	        nMalicious-=1
 	        nPeersTeam+=1
                 runPeer(False, True, True)
-        else:
+
+        r = random.randint(1,100)
+        if r <= P_WIP:
             #with open("regular.txt", "a") as fh:
             #    fh.write('127.0.0.1:{0}\n'.format(port))
             #    fh.close()
@@ -362,7 +360,7 @@ def findLastRound():
             pass
         result = re.match("(\d*)\t(\d*)\s(\d*).*", line)
         if result != None:
-             return int(result.group(2))
+             return int(result.group(1))
     return -1
 
 #def checkForRounds():
@@ -376,13 +374,13 @@ def main(args):
     random.seed(SEED)
 
     try:
-        opts, args = getopt.getopt(args, "n:t:i:m:z:s:d:cw:")
+        opts, args = getopt.getopt(args, "n:t:i:m:z:s:d:w:c:")
     except getopt.GetoptError:
         usage()
         sys.exit(2)
 
     ds = False
-    global nPeers, nTrusted, nMalicious, sizeTeam, nPeersTeam, TOTAL_TIME, WEIBULL_SHAPE, nInitialTrusted, experiment_path, INIT_TIME
+    global nPeers, nTrusted, nMalicious, sizeTeam, nPeersTeam, TOTAL_TIME, WEIBULL_SHAPE, WEIBULL_TIME, nInitialTrusted, experiment_path, INIT_TIME
     nPeers = 2
     nTrusted = nInitialTrusted = 1
     nMalicious = 0
@@ -402,16 +400,10 @@ def main(args):
             ds = True
         elif opt == "-d":
             TOTAL_TIME = int(arg)
-        elif opt == "-c":
-            try:
-                shutil.rmtree(experiment_path)
-            except:
-                pass
-
-            print("temp files removed")
-            sys.exit()
         elif opt == "-w":
             WEIBULL_SHAPE = float(arg)
+        elif opt == "-c":
+            WEIBULL_TIME = int(arg)
 
     print 'running initial team with {0} peers ({1} trusted)'.format(nPeers, nInitialTrusted)
 
@@ -426,7 +418,7 @@ def main(args):
 
     print "Team Initialized"
 
-    for i in xrange(5,0,-1):
+    for i in xrange(1,0,-1):
         print "Wait for buffering",
         print str(i)+'  \r',
         sys.stdout.flush()
