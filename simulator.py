@@ -40,7 +40,7 @@ buffer_values = {}
 P_IN = 50
 P_OUT = 50
 P_WIP = 50
-P_MP = 100
+P_MP = 50
 P_MPL = 50
 P_TPL = 50
 MPTR = 5
@@ -50,7 +50,7 @@ WEIBULL_SHAPE = 5.
 WEIBULL_TIME = 60
 
 def checkdir():
-    global experiment_path, nPeersTeam, nTrusted, nMalicious, sizeTeam, TOTAL_TIME
+    global experiment_path
     experiment_path = datetime.datetime.now().strftime("%d%m%y%H%M") + "n" + str(nPeersTeam) + "t" +  str(nTrusted+nInitialTrusted) + "m" + str(nMalicious) + "z" + str(sizeTeam) + "d" + str(TOTAL_TIME)
     
     if not os.path.exists(experiment_path):
@@ -77,15 +77,13 @@ def runStream():
     time.sleep(0.5)
 
 def runSplitter(ds = False):
-    global experiment_path
     prefix = ""
     if ds: prefix = "ds"
-    run("./splitter.py --port 8001 --source_port 8080 --max_chunk_loss 32 --buffer_size " + str(256) + " --strpeds_log " + experiment_path + "/splitter.log --p_mpl " + str(P_MPL) + " --p_tpl " + str(P_TPL), open("{0}/splitter.out".format(experiment_path), "w"))
-
+    run("./splitter.py --port 8001 --source_port 8080 --max_chunk_loss 32 --chunk_size 256 --buffer_size " + str(256) + " --strpeds_log " + experiment_path + "/splitter.log --p_mpl " + str(P_MPL) + " --p_tpl " + str(P_TPL), open("{0}/splitter.out".format(experiment_path), "w"))
     time.sleep(0.5)
 
 def runPeer(trusted = False, malicious = False, ds = False):
-    global port, playerPort, TOTAL_TIME, DEVNULL, MPTR, WEIBULL_SHAPE, WEIBULL_TIME, experiment_path
+    global port, playerPort
     #run peer
     runStr = "./peer.py --splitter_port 8001 --use_localhost --port {0} --player_port {1}".format(port, playerPort)
 
@@ -122,7 +120,6 @@ def runPeer(trusted = False, malicious = False, ds = False):
 
 
 def check(x):
-    global experiment_path
     with open("{0}/splitter.log".format(experiment_path)) as fh:
         for line in fh:
             pass
@@ -166,7 +163,7 @@ def initializeTeam(nPeers, nInitialTrusted):
        runPeer(False, False, True)
 
 def churn():
-    global trusted_peers, P_IN, nTrusted, nPeersTeam, INIT_TIME, nMalicious, TOTAL_TIME, processes
+    global  nTrusted, nPeersTeam, nMalicious, trusted_peers, weibull_expelled, angry_peers_retired
 
     #while checkForRounds():
     while TOTAL_TIME > (time.time()-INIT_TIME):
@@ -242,7 +239,7 @@ def churn():
 
 
 def checkForBufferTimes():
-    global WACLR_max, angry_peers, buffer_values, experiment_path
+    global angry_peers, buffer_values
     fileList = glob.glob("{0}/peer*.log".format(experiment_path))
     for f in fileList:
 
@@ -279,7 +276,7 @@ def getLastBufferFor(inFile):
     return fullness
 
 def addRegularOrMaliciousPeer():
-    global nMalicious, nPeersTeam, P_MP, P_WIP, iteration, nTrusted, TOTAL_TIME, currentRound
+    global nMalicious, nPeersTeam, nTrusted, currentRound
     if sizeTeam > nPeersTeam:
         r = random.randint(1,100)
         if r <= P_MP:
@@ -306,11 +303,9 @@ def addRegularOrMaliciousPeer():
     sys.stdout.flush()
     print progress,
     print str(int(time.time()-INIT_TIME))+"/"+str(TOTAL_TIME),
-    #print "#"*(iteration%5),
     print '\r',
 
 def checkForTrusted():
-    global experiment_path
     with open("{0}/splitter.log".format(experiment_path)) as fh:
         for line in fh:
             pass
@@ -328,7 +323,7 @@ def checkForTrusted():
     return True
 
 def checkForPeersExpelled():
-    global mp_expelled_by_tps, experiment_path, tp_expelled_by_splitter
+    global mp_expelled_by_tps, tp_expelled_by_splitter
     peer_type = "WIP"
     with open("{0}/splitter.log".format(experiment_path)) as fh:
         for line in fh:
@@ -354,7 +349,6 @@ def saveLastRound():
     LAST_ROUND_NUMBER = findLastRound()
 
 def findLastRound():
-    global iteration, experiment_path
     with open("{0}/splitter.log".format(experiment_path)) as fh:
         for line in fh:
             pass
@@ -363,14 +357,9 @@ def findLastRound():
              return int(result.group(1))
     return -1
 
-#def checkForRounds():
-#    global currentRound
-#    lastRound = findLastRound()
-#    if lastRound != currentRound:
-#        currentRound = lastRound
-#    return currentRound - LAST_ROUND_NUMBER < Q
-
 def main(args):
+    global nPeers, nTrusted, nInitialTrusted, nMalicious, sizeTeam, nPeersTeam, INIT_TIME, TOTAL_TIME, WEIBULL_SHAPE, WEIBULL_TIME
+
     random.seed(SEED)
 
     try:
@@ -380,7 +369,6 @@ def main(args):
         sys.exit(2)
 
     ds = False
-    global nPeers, nTrusted, nMalicious, sizeTeam, nPeersTeam, TOTAL_TIME, WEIBULL_SHAPE, WEIBULL_TIME, nInitialTrusted, experiment_path, INIT_TIME
     nPeers = 2
     nTrusted = nInitialTrusted = 1
     nMalicious = 0
@@ -418,7 +406,7 @@ def main(args):
 
     print "Team Initialized"
 
-    for i in xrange(1,0,-1):
+    for i in xrange(2,0,-1):
         print "Wait for buffering",
         print str(i)+'  \r',
         sys.stdout.flush()

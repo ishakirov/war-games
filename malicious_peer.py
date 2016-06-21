@@ -41,7 +41,8 @@ class MaliciousPeer(PeerSTRPEDS):
     allAttackC = False
     badMouthAttack = False
     MPTR = 5
-
+    message_format = ""
+    
     def __init__(self, peer):
         # {{{
         PeerSTRPEDS.__init__(self)
@@ -106,7 +107,7 @@ class MaliciousPeer(PeerSTRPEDS):
         if len(message) == self.message_size:
             # {{{ A video chunk has been received
             print("longitud: ", len(message))
-            chunk_number, chunk, k1, k2, cr = struct.unpack("=H1024s40s40sI", message)
+            chunk_number, chunk, k1, k2, cr = struct.unpack(self.message_format, message)
             self.current_round = cr
             chunk_number = socket.ntohs(chunk_number)
             #self.chunks[chunk_number % self.buffer_size] = chunk
@@ -186,7 +187,7 @@ class MaliciousPeer(PeerSTRPEDS):
             # {{{ A new chunk has arrived and the
             # previous must be forwarded to next peer of the
             # list of peers.
-            empty = struct.pack("=H1024s40s40sI", 0, ("").encode("utf8"), ("").encode("utf8"), ("").encode("utf8"), 0)
+            empty = struct.pack("=H"+str(self.chunk_size)+"s40s40sI", 0, ("").encode("utf8"), ("").encode("utf8"), ("").encode("utf8"), 0)
             if ( self.receive_and_feed_counter < len(self.GetPeerList()) and ( self.receive_and_feed_previous != empty) ):
                 # {{{ Send the previous chunk in congestion avoiding mode.
 
@@ -290,7 +291,7 @@ class MaliciousPeer(PeerSTRPEDS):
                     self.SendChunk(bytes(self.receive_and_feed_previous), peer)
                     print("No poisoned", peer)
 
-                chunk_number, chunk, k1, k2, cr = struct.unpack("=H1024s40s40sI", self.get_poisoned_chunk(self.receive_and_feed_previous))
+                chunk_number, chunk, k1, k2, cr = struct.unpack(self.message_format, self.get_poisoned_chunk(self.receive_and_feed_previous))
                 print (Color.red, "Persistent Attack: ", str(peer), "CN:", str(socket.ntohs(chunk_number)),  Color.none)
                 return
             
@@ -319,8 +320,8 @@ class MaliciousPeer(PeerSTRPEDS):
             print (Color.red, "No Attack", Color.none)
         
     def get_poisoned_chunk(self, message):
-        chunk_number, chunk, k1, k2, cr = struct.unpack("=H1024s40s40sI", message)
-        return struct.pack("=H1024s40s40sI", chunk_number, ("fake_chunk").encode("utf8"), k1, k2,cr)
+        chunk_number, chunk, k1, k2, cr = struct.unpack(self.message_format, message)
+        return struct.pack(self.message_format, chunk_number, ("fake_chunk").encode("utf8"), k1, k2,cr)
 
     def setPersistentAttack(self, value):
         self.persistentAttack = value
@@ -348,3 +349,7 @@ class MaliciousPeer(PeerSTRPEDS):
 
     def setMPTR(self, value):
         self.MPTR = int(value)
+
+    def setChunkSize(self, value):
+        self.chunk_size = value
+        self.message_format = "=H"+str(self.chunk_size)+"s40s40sI"

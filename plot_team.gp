@@ -12,9 +12,9 @@ set output 'team.svg'
 
 # color definitions
 set border linewidth 1.5
-set style line 1 lc rgb '#0B6121' lt 1 lw 2 pt 7 ps 1 # --- green for WIPs
-set style line 2 lc rgb '#DF0101' lt 1 lw 2 pt 9 ps 1 # --- red for MPs
-set style line 3 lc rgb '#0060ad' lt 1 lw 2 pt 5 ps 1 # --- blue for TPs
+set style line 1 lc rgb '#0B6121' lt 1 lw 1 pt 6 ps 1 # --- green for WIPs
+set style line 2 lc rgb '#DF0101' lt 1 lw 1 pt 8 ps 1 # --- red for MPs
+set style line 3 lc rgb '#0060ad' lt 1 lw 1 pt 4 ps 1 # --- blue for TPs
 
 #unset key
 

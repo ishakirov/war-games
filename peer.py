@@ -160,20 +160,12 @@ class Peer():
             pass
 
         args = parser.parse_args()
-
-         # {{{ Args handling and object instantiation
+        
         if args.malicious:
             peer = MaliciousPeer(PeerSTRPEDS())
-            if args.persistent:
-                peer.setPersistentAttack(True)
-        elif args.monitor:
-            #peer = MonitorDBS()
-            print("PeerSTRPEDS Initialized")
-            #peer = PeerSTRPEDS()
-        else:
-            print("Nothing")
-            #peer = PeerDBS() #change for strpeds
-            #peer = PeerSTRPEDS()
+        
+
+         # {{{ Args handling and object instantiation        
             
         if args.splitter_addr:
             peer.splitter_addr = socket.gethostbyname(args.splitter_addr)
@@ -238,7 +230,7 @@ class Peer():
             else:
                 _print_("Peer DBS enabled")
                 # The peer is a normal peer. Let's know the sets of rules that control this team.
-
+                
             '''
            
             if args.strpeds:
@@ -255,8 +247,9 @@ class Peer():
                     peer.setSelectiveAttack(True, args.selective)
             '''
             if args.malicious:
-                #peer = Peer_StrpeDsMalicious(peer)
+                peer.setChunkSize(peer.chunk_size)
                 peer.firstMainTarget()
+                
                 if args.persistent:
                     peer.setPersistentAttack(True)
                 if args.on_off_ratio:

@@ -80,7 +80,7 @@ class Splitter():
         parser.add_argument('--p_mpl', help='Probabity Malicious peer leaves. Default = {}.')
         parser.add_argument('--p_tpl', help='Probabity Trusted peer leaves. Default = {}.')
         #parser.add_argument("--IMS", action="store_true", help="Uses the IP multicast infrastructure, if available. IMS mode is incompatible with ACS, LRS, DIS and NTS modes.")
-        #parser.add_argument("--NTS", action="store_true", help="Enables NAT traversal.")
+        parser.add_argument("--NTS", action="store_true", help="Enables NAT traversal.")
         #parser.add_argument("--ACS", action="store_true", help="Enables Adaptive Chunk-rate.")
         #parser.add_argument("--LRS", action="store_true", help="Enables Lost chunk Recovery.")
         #parser.add_argument("--DIS", action="store_true", help="Enables Data Integrity check.")
