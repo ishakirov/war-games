@@ -265,7 +265,7 @@ class MaliciousPeer(PeerSTRPEDS):
             fh.close()
     
     def send_chunk(self, peer):
-        if len(self.receive_and_feed_previous) == 1110:
+        if len(self.receive_and_feed_previous) == (2 + self.chunk_size + 40 + 40 + 4):
             if self.persistentAttack:
                 if (peer == self.mainTarget) and (self.numberChunksSendToMainTarget < self.MPTR):
                     self.SendChunk(self.get_poisoned_chunk(self.receive_and_feed_previous), peer)
