@@ -79,7 +79,7 @@ def runStream():
 def runSplitter(ds = False):
     prefix = ""
     if ds: prefix = "ds"
-    run("./splitter.py --port 8001 --source_port 8080 --max_chunk_loss 32 --chunk_size 256 --buffer_size " + str(256) + " --strpeds_log " + experiment_path + "/splitter.log --p_mpl " + str(P_MPL) + " --p_tpl " + str(P_TPL), open("{0}/splitter.out".format(experiment_path), "w"))
+    run("./splitter.py --port 8001 --source_port 8080 --max_chunk_loss 32 --chunk_size 256 --buffer_size " + str(1024) + " --strpeds_log " + experiment_path + "/splitter.log --p_mpl " + str(P_MPL) + " --p_tpl " + str(P_TPL), open("{0}/splitter.out".format(experiment_path), "w"))
     time.sleep(0.5)
 
 def runPeer(trusted = False, malicious = False, ds = False):
