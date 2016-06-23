@@ -40,9 +40,9 @@ buffer_values = {}
 P_IN = 50
 P_OUT = 50
 P_WIP = 50
-P_MP = 50
-P_MPL = 50
-P_TPL = 50
+P_MP = 100
+P_MPL = 100
+P_TPL = 100
 MPTR = 5
 WACLR_max = 0.25
 alpha = 0.9
@@ -372,7 +372,7 @@ def main(args):
     nPeers = 2
     nTrusted = nInitialTrusted = 1
     nMalicious = 0
-    sizeTeam= nPeersTeam = 2
+    sizeTeam = nPeersTeam = 2
     for opt, arg in opts:
         if opt == "-n":
             nPeers = int(arg)
