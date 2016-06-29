@@ -155,85 +155,9 @@ class Splitter():
 
         splitter.Start()
 
-        # {{{ Prints information until keyboard interruption
-
-        print("         | Received  | Sent      | Number       losses/ losses")
-        print("    Time | (kbps)    | (kbps)    | peers (peer) sents   threshold period kbps")
-        print("---------+-----------+-----------+-----------------------------------...")
-
-        last_sendto_counter = splitter.GetSendToCounter()
-        last_recvfrom_counter = splitter.GetRecvFromCounter()
 
         while splitter.isAlive():
-            try:
-                time.sleep(1)
-                chunks_sendto = splitter.GetSendToCounter() - last_sendto_counter
-                kbps_sendto = (chunks_sendto * splitter.chunk_size * 8) / 1000
-                chunks_recvfrom = splitter.GetRecvFromCounter() - last_recvfrom_counter
-                kbps_recvfrom = ( chunks_recvfrom * splitter.chunk_size * 8) / 1000
-                last_sendto_counter = splitter.GetSendToCounter()
-                last_recvfrom_counter = splitter.GetRecvFromCounter()
-                sys.stdout.write(Color.none)
-                _print_("|" + repr(int(kbps_recvfrom)).rjust(10) + " |" + repr(int(kbps_sendto)).rjust(10), end=" | ")
-                #print('%5d' % splitter.chunk_number, end=' ')
-                sys.stdout.write(Color.cyan)
-                print(len(splitter.GetPeerList()), end=' ')
-                if not __debug__:
-                    counter = 0
-                for p in splitter.GetPeerList():
-                    if not __debug__:
-                        if counter > 10:
-                            break
-                        counter += 1
-                    sys.stdout.write(Color.blue)
-                    print(p, end= ' ')
-                    sys.stdout.write(Color.red)
-                    #print(str('%3d' % splitter.GetLoss(p)) + '/' + str('%3d' % chunks_sendto), splitter.GetMaxChunkLoss(), end=' ')
-                   
-                print()
-
-            except KeyboardInterrupt:
-                print('Keyboard interrupt detected ... Exiting!')
-
-                # Say to daemon threads that the work has been finished,
-                splitter.SetAlive(False)
-
-                # Wake up the "moderate_the_team" daemon, which is
-                # waiting in a recvfrom().
-                splitter.SayGoodbye()
-                '''                
-				if not args.IMS:
-                    #splitter.say_goodbye(("127.0.0.1", splitter.PORT), splitter.team_socket)
-                    splitter.team_socket.sendto(b'', ("127.0.0.1", splitter.PORT))
-				'''
-                # Wake up the "handle_arrivals" daemon, which is waiting
-                # in an accept().
-                sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                sock.connect(("127.0.0.1", splitter.team_port))
-                sock.recv(struct.calcsize("4sH")) # Multicast channel
-                sock.recv(struct.calcsize("H")) # Header size
-                sock.recv(struct.calcsize("H")) # Chunk size
-                sock.recv(splitter.CHUNK_SIZE*splitter.HEADER_SIZE) # Header
-                sock.recv(struct.calcsize("H")) # Buffer size
-                sock.recv(struct.calcsize("4sH")) # Endpoint
-                sock.recv(struct.calcsize("B")) # Magic flags
-                if args.IMS:
-                    number_of_peers = 0
-                else:
-                    number_of_peers = socket.ntohs(struct.unpack("H", sock.recv(struct.calcsize("H")))[0])
-                    print("Number of peers =", number_of_peers)
-                # Receive the list
-                while number_of_peers > 0:
-                    sock.recv(struct.calcsize("4sH"))
-                    number_of_peers -= 1
-
-                # Breaks this thread and returns to the parent process
-                # (usually, the shell).
-                break
-
-            # }}}
-
-        # }}}
+            pass
 
     # {{{# -COM-
 
