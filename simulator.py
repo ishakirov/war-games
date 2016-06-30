@@ -45,6 +45,7 @@ P_MPL = 100
 P_TPL = 100
 MPTR = 5
 WACLR_max = 0.25
+WACLR_max_var = 1.
 alpha = 0.9
 WEIBULL_SHAPE = 5.
 WEIBULL_TIME = 60
@@ -79,7 +80,7 @@ def runStream():
 def runSplitter(ds = False):
     prefix = ""
     if ds: prefix = "ds"
-    run("./splitter --strpeds --team_port 8001 --source_port 8080 --max_number_of_chunk_loss 32 --chunk_size 512 --buffer_size 1024 --strpeds_log " + experiment_path + "/splitter.log --p_mpl " + str(P_MPL) + " --p_tpl " + str(P_TPL), open("{0}/splitter.out".format(experiment_path), "w"))
+    run("./splitter --strpeds --team_port 8001 --source_port 8080 --max_number_of_chunk_loss 32 --chunk_size 256 --buffer_size 1024 --strpeds_log " + experiment_path + "/splitter.log --p_mpl " + str(P_MPL) + " --p_tpl " + str(P_TPL), open("{0}/splitter.out".format(experiment_path), "w"))
     time.sleep(0.5)
 
 def runPeer(trusted = False, malicious = False, ds = False):
@@ -130,6 +131,7 @@ def check(x):
 
 def initializeTeam(nPeers, nInitialTrusted):
 
+    random.seed()
     print "running stream"
     runStream()
 
@@ -226,7 +228,7 @@ def churn():
             if (r <= P_OUT) and (p[0].poll() == None):
                 if (p[1] in angry_peers):
                     if p[1] not in angry_peers_retired:
-                        print Color.red, "Out: -->", p[3], p[1], "(by WACLR_max)", Color.none
+                        print Color.red, "Out: -->", p[3], p[1], "(by WACLR_max)", WACLR_max_var, "/",  buffer_values[p[1]] , "round", findLastRound() , Color.none
 
                         p[0].terminate()
 
@@ -255,7 +257,8 @@ def checkForBufferTimes():
         if CLR != None:
             buffer_values[peer_str] = alpha * CLR + (1-alpha) * buffer_values[peer_str]
 
-        if (buffer_values[peer_str] > WACLR_max):
+        if (buffer_values[peer_str] > WACLR_max_var):
+            print(peer_str, "value", buffer_values[peer_str], "max", WACLR_max_var)
             if peer_str not in angry_peers and peer_str not in trusted_peers:
                 angry_peers.append(peer_str)
 
@@ -276,7 +279,7 @@ def getLastBufferFor(inFile):
     return fullness
 
 def addRegularOrMaliciousPeer():
-    global nMalicious, nPeersTeam, nTrusted, currentRound
+    global nMalicious, nPeersTeam, nTrusted, currentRound, WACLR_max_var
     if sizeTeam > nPeersTeam:
         r = random.randint(1,100)
         if r <= P_MP:
@@ -299,7 +302,11 @@ def addRegularOrMaliciousPeer():
             runPeer(False, False, True)
 
     currentRound = findLastRound()
-    progress ="Round "+ str(currentRound-LAST_ROUND_NUMBER)+" Size "+str(sizeTeam)+"/"+str(nPeersTeam)
+    if currentRound > 0:
+        round = currentRound - LAST_ROUND_NUMBER
+        WACLR_max_var = WACLR_max + (1/(round/(round + 100.))) - 1
+
+    progress ="Round "+ str(round)+" Size "+str(sizeTeam)+"/"+str(nPeersTeam)
     sys.stdout.flush()
     print progress,
     print str(int(time.time()-INIT_TIME))+"/"+str(TOTAL_TIME),
