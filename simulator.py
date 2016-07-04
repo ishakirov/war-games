@@ -469,7 +469,7 @@ def main(args):
     os.rename("buffer.svg", experiment_path + "/buffer.svg")
     os.rename("fullness.svg", experiment_path + "/fullness.svg")
 
-    raw_input("Press Enter to exit...")
+    #raw_input("Press Enter to exit...")
 
     return 0
 
