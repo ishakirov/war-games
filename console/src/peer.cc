@@ -268,8 +268,6 @@ namespace p2psp {
         // this team.
       }
 
-      
-
     } else {
       // IP multicast mode
       peer->ListenToTheTeam();
@@ -311,7 +309,7 @@ namespace p2psp {
     // float nice = 0.0f;
     int counter = 0;
 
-    while (peer->IsPlayerAlive()) {
+    while (!peer->IsReadyToLeaveTheTeam()) {
       if (KILL){
 	LOG("Killing the player...");
 	peer->SetPlayerAlive(false);
