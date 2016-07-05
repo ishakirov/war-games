@@ -468,6 +468,8 @@ def main(args):
     os.rename("team.svg", experiment_path + "/team.svg")
     os.rename("buffer.svg", experiment_path + "/buffer.svg")
     os.rename("fullness.svg", experiment_path + "/fullness.svg")
+    if os.path.isfile("simulator.txt"):
+        os.rename("simulator.txt", experiment_path + "/simulator.txt")
 
     #raw_input("Press Enter to exit...")
 
