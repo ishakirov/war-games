@@ -178,7 +178,7 @@ def churn():
             addRegularOrMaliciousPeer()
 
         # Arrival of trusted peers
-        r = random.randint(1,100)
+        #r = random.randint(1,100) (use the previous one)
         if r <= P_IN and nTrusted>0:
             print Color.green, "In: <--", Color.none, "TP 127.0.0.1:{0}".format(port),
             with open("trusted.txt", "a") as fh:
@@ -301,7 +301,7 @@ def addRegularOrMaliciousPeer():
             runPeer(False, False, True)
 
     currentRound = findLastRound()
-    round = currentRound - LAST_ROUND_NUMBER
+    round = currentRound
     if round > 0:
         WACLR_max_var = WACLR_max + (1/(round/(round + 100.))) - 1
 
