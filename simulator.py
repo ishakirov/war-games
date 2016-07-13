@@ -17,7 +17,7 @@ experiment_path = "" #automatically assigned
 DEVNULL = open(os.devnull, 'wb')
 SEED = 12345678
 
-nPeers = nTrusted = nMalicious = sizeTeam = nPeersTeam = nInitialTrusted = 0
+nPeers = slotsTP = slotsMP = sizeTeam = nPeersTeam = nInitialTrusted = 0
 
 port = 60000
 playerPort = 61000
@@ -52,7 +52,7 @@ WEIBULL_TIME = 60
 
 def checkdir():
     global experiment_path
-    experiment_path = datetime.datetime.now().strftime("%d%m%y%H%M") + "n" + str(nPeersTeam) + "t" +  str(nTrusted+nInitialTrusted) + "m" + str(nMalicious) + "z" + str(sizeTeam) + "d" + str(TOTAL_TIME)
+    experiment_path = datetime.datetime.now().strftime("%d%m%y%H%M") + "n" + str(nPeersTeam) + "t" +  str(slotsTP+nInitialTrusted) + "m" + str(slotsMP) + "z" + str(sizeTeam) + "d" + str(TOTAL_TIME)
     
     if not os.path.exists(experiment_path):
         os.mkdir(experiment_path)
@@ -165,12 +165,12 @@ def initializeTeam(nPeers, nInitialTrusted):
        runPeer(False, False, True)
 
 def churn():
-    global  nTrusted, nPeersTeam, nMalicious, trusted_peers, weibull_expelled, angry_peers_retired
+    global  slotsTP, nPeersTeam, slotsMP, trusted_peers, weibull_expelled, angry_peers_retired
 
     #while checkForRounds():
     while TOTAL_TIME > (time.time()-INIT_TIME):
 
-        #print("nMalicious: ",nMalicious, "nTrusted: ", nTrusted, "nPeersTeam: ", nPeersTeam)
+        #print("slotsMP: ",slotsMP, "slotsTP: ", slotsTP, "nPeersTeam: ", nPeersTeam)
         
         # Arrival of regular or malicious peers
         r = random.randint(1,100)
@@ -178,14 +178,14 @@ def churn():
             addRegularOrMaliciousPeer()
 
         # Arrival of trusted peers
-        #r = random.randint(1,100) (use the previous one)
-        if r <= P_IN and nTrusted>0:
+        r = random.randint(1,100)
+        if r <= P_IN and slotsTP>0:
             print Color.green, "In: <--", Color.none, "TP 127.0.0.1:{0}".format(port),
             with open("trusted.txt", "a") as fh:
                 fh.write('127.0.0.1:{0}\n'.format(port))
                 fh.close()
             trusted_peers.append('127.0.0.1:{0}'.format(port))
-            nTrusted-=1
+            slotsTP-=1
             nPeersTeam+=1
             runPeer(True, False, True)
 
@@ -195,10 +195,10 @@ def churn():
              
             if anyExpelled[0] == "MP":
                 print Color.red,
-                nMalicious+=1
+                slotsMP+=1
             else:
                 print Color.purple,
-                nTrusted+=1
+                slotsTP+=1
             print "Out: -->", anyExpelled[0], anyExpelled[1], Color.none
 	    nPeersTeam-=1
 
@@ -219,7 +219,7 @@ def churn():
                         weibull_expelled.append(p[1])
                         
                         if p[3] == "TP":
-                            nTrusted+=1
+                            slotsTP+=1
 
                         nPeersTeam-=1
 
@@ -278,16 +278,16 @@ def getLastBufferFor(inFile):
     return fullness
 
 def addRegularOrMaliciousPeer():
-    global nMalicious, nPeersTeam, nTrusted, currentRound, WACLR_max_var
+    global slotsMP, nPeersTeam, slotsTP, currentRound, WACLR_max_var
     if sizeTeam > nPeersTeam:
         r = random.randint(1,100)
         if r <= P_MP:
-            if nMalicious>0:
+            if slotsMP>0:
                 with open("malicious.txt", "a") as fh:
                     fh.write('127.0.0.1:{0}\n'.format(port))
                     fh.close()
                 print Color.green, "In: <--", Color.none, "MP 127.0.0.1:{0}".format(port),
-	        nMalicious-=1
+	        slotsMP-=1
 	        nPeersTeam+=1
                 runPeer(False, True, True)
 
@@ -305,7 +305,7 @@ def addRegularOrMaliciousPeer():
     if round > 0:
         WACLR_max_var = WACLR_max + (1/(round/(round + 100.))) - 1
 
-    progress ="Round "+ str(round)+" Size "+str(nPeersTeam)+"/"+str(sizeTeam)
+    progress ="Round "+ str(round)+" Size "+str(nPeersTeam)+"/"+str(sizeTeam)+" TP slots "+str(slotsTP) + " MP slots "+str(slotsMP)
     sys.stdout.flush()
     print progress,
     print str(int(time.time()-INIT_TIME))+"/"+str(TOTAL_TIME),
@@ -324,7 +324,7 @@ def checkForTrusted():
                 if peer in trusted_peers:
                     tCnt += 1
 
-            return tCnt == nTrusted
+            return tCnt == slotsTP
 
     return True
 
@@ -364,7 +364,7 @@ def findLastRound():
     return -1
 
 def main(args):
-    global nPeers, nTrusted, nInitialTrusted, nMalicious, sizeTeam, nPeersTeam, INIT_TIME, TOTAL_TIME, WEIBULL_SHAPE, WEIBULL_TIME
+    global nPeers, slotsTP, nInitialTrusted, slotsMP, sizeTeam, nPeersTeam, INIT_TIME, TOTAL_TIME, WEIBULL_SHAPE, WEIBULL_TIME
 
     random.seed(SEED)
 
@@ -376,18 +376,18 @@ def main(args):
 
     ds = False
     nPeers = 2
-    nTrusted = nInitialTrusted = 1
-    nMalicious = 0
+    slotsTP = nInitialTrusted = 1
+    slotsMP = 0
     sizeTeam = nPeersTeam = 2
     for opt, arg in opts:
         if opt == "-n":
             nPeers = int(arg)
         elif opt == "-t":
-            nTrusted = int(arg)
+            slotsTP = int(arg)
         elif opt == "-i":
             nInitialTrusted = int(arg)
         elif opt == "-m":
-            nMalicious = int(arg)
+            slotsMP = int(arg)
         elif opt == "-z":
 	    sizeTeam = int(arg)
         elif opt == "-s":
@@ -401,9 +401,9 @@ def main(args):
 
     print 'running initial team with {0} peers ({1} trusted)'.format(nPeers, nInitialTrusted)
 
-    nPeers = nPeers - nInitialTrusted #- nMalicious # for more friendly user input
+    nPeers = nPeers - nInitialTrusted #- slotsMP # for more friendly user input
     nPeersTeam = nPeers + nInitialTrusted
-    nTrusted = nTrusted - nInitialTrusted
+    slotsTP = slotsTP - nInitialTrusted
     checkdir()
 
     INIT_TIME = time.time()
