@@ -37,7 +37,7 @@ angry_peers_retired = []
 weibull_expelled = []
 buffer_values = {}
 
-P_IN = 80
+P_IN = 50
 P_OUT = 50
 P_WIP = 50
 P_MP = 100
@@ -178,8 +178,8 @@ def churn():
             addRegularOrMaliciousPeer()
 
         # Arrival of trusted peers
-        r = random.randint(1,100)
-        if r <= P_IN and slotsTP>0:
+        #r = random.randint(1,100)
+        if r <= P_IN and slotsTP > 0:
             print Color.green, "In: <--", Color.none, "TP 127.0.0.1:{0}".format(port),
             with open("trusted.txt", "a") as fh:
                 fh.write('127.0.0.1:{0}\n'.format(port))
@@ -310,7 +310,7 @@ def addRegularOrMaliciousPeer():
     print progress,
     print str(int(time.time()-INIT_TIME))+"/"+str(TOTAL_TIME),
     print '\r',
-
+'''
 def checkForTrusted():
     with open("{0}/splitter.log".format(experiment_path)) as fh:
         for line in fh:
@@ -327,6 +327,7 @@ def checkForTrusted():
             return tCnt == slotsTP
 
     return True
+'''
 
 def checkForPeersExpelled():
     global mp_expelled_by_tps, tp_expelled_by_splitter
@@ -342,6 +343,7 @@ def checkForPeersExpelled():
                 elif result.group(2) not in mp_expelled_by_tps:
                     peer_type = "MP"
                     mp_expelled_by_tps.append(result.group(2))
+                
                 if peer_type != "WIP":   
                     for p in processes:
                         if (p[1] == result.group(2)) and (p[0].poll() == None):
