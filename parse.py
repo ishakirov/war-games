@@ -12,7 +12,7 @@ min_buffer_filling = 1
 
 experiment_path = ""
 
-logFiles = {}
+log_files = {}
 
 def usage():
     print ""
@@ -38,8 +38,8 @@ def calcAverageBufferCorrectnes(roundTime):
     correctnesSum = fillingSum = fullnessSum = 0.0
     NN = 0
 
-    for f in logFiles:
-        info = calcAverageInFile(logFiles[f], roundTime)
+    for f in log_files:
+        info = calcAverageInFile(log_files[f], roundTime)
         if (info[0] != None and info[1] != None and info[2] != None):
             correctnesSum += info[0]
             fillingSum += info[1]
@@ -72,7 +72,7 @@ def calcAverageInFile(fileLines, roundTime):
 
 def main(args):
     global experiment_path
-    global logFiles
+    global log_files
     inFile = ""
     nPeers = nMalicious = lastRound = 0
     try:
@@ -89,7 +89,7 @@ def main(args):
     regex = re.compile("(\d*)\t(\d*)\s(\d*)\s(.*)")
     startParse = False
     roundOffset = 0
-    logFiles = readAllFiles()
+    log_files = readAllFiles()
     print "round\t#WIPs\t#MPs\t#TPs\tteamsize\tcorrectness\tfilling\tfullness"
     with open("{0}/splitter.log".format(experiment_path)) as f:
         for line in f:
