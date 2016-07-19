@@ -17,7 +17,7 @@ experiment_path = "" #automatically assigned
 DEVNULL = open(os.devnull, 'wb')
 SEED = 12345678
 
-nPeers = nTrusted = nMalicious = sizeTeam = nPeersTeam = nInitialTrusted = 0
+nPeers = slotsTP = slotsMP = sizeTeam = nPeersTeam = nInitialTrusted = 0
 
 port = 60000
 playerPort = 61000
@@ -44,15 +44,15 @@ P_MP = 100
 P_MPL = 100
 P_TPL = 100
 MPTR = 5
-WACLR_max = 0.10
+WACLR_max = 1.
 WACLR_max_var = 1.
 alpha = 0.25
-WEIBULL_SHAPE = 5.
+WEIBULL_SHAPE = 1.
 WEIBULL_TIME = 60
 
 def checkdir():
     global experiment_path
-    experiment_path = datetime.datetime.now().strftime("%d%m%y%H%M") + "n" + str(nPeersTeam) + "t" +  str(nTrusted+nInitialTrusted) + "m" + str(nMalicious) + "z" + str(sizeTeam) + "d" + str(TOTAL_TIME)
+    experiment_path = datetime.datetime.now().strftime("%d%m%y%H%M") + "n" + str(nPeersTeam) + "t" +  str(slotsTP+nInitialTrusted) + "m" + str(slotsMP) + "z" + str(sizeTeam) + "d" + str(TOTAL_TIME)
     
     if not os.path.exists(experiment_path):
         os.mkdir(experiment_path)
@@ -80,7 +80,7 @@ def runStream():
 def runSplitter(ds = False):
     prefix = ""
     if ds: prefix = "ds"
-    run("./console/bin/splitter --strpeds --team_port 8001 --source_port 8080 --max_number_of_chunk_loss 32 --chunk_size 512 --buffer_size 1024 --strpeds_log " + experiment_path + "/splitter.log --p_mpl " + str(P_MPL) + " --p_tpl " + str(P_TPL), open("{0}/splitter.out".format(experiment_path), "w"))
+    run("./console/bin/splitter --strpeds --team_port 8001 --source_port 8080 --max_number_of_chunk_loss 32 --chunk_size 128 --buffer_size 1024 --strpeds_log " + experiment_path + "/splitter.log --p_mpl " + str(P_MPL) + " --p_tpl " + str(P_TPL), open("{0}/splitter.out".format(experiment_path), "w"))
     time.sleep(0.5)
 
 def runPeer(trusted = False, malicious = False, ds = False):
@@ -100,13 +100,14 @@ def runPeer(trusted = False, malicious = False, ds = False):
 
 
     #Weibull distribution in this random number:
-    ttl = int(round(np.random.weibull(WEIBULL_SHAPE) * WEIBULL_TIME))
-    print " / ttl =", ttl,
-    ttl = ttl + int(time.time()-INIT_TIME)
-    print "("+str(ttl)+")"
-    alias = "127.0.0.1:"+str(port)
-
-    if (peertype == "MP"):
+    if (peertype == "WIP"):
+        ttl = int(round(np.random.weibull(WEIBULL_SHAPE) * WEIBULL_TIME))
+        print " / ttl =", ttl,
+        ttl = ttl + int(time.time()-INIT_TIME)
+        print "("+str(ttl)+")"
+        alias = "127.0.0.1:"+str(port)
+    else:
+        print ""
         ttl = None
     
     run(runStr, open("{0}/peer{1}.out".format(experiment_path,port), "w"), "127.0.0.1:"+str(port), ttl , peertype)
@@ -141,7 +142,7 @@ def initializeTeam(nPeers, nInitialTrusted):
     # clear the trusted.txt file
     with open("trusted.txt", "w"):
         pass
-    # clear the attacked.txt file
+    # clear the attackled.txt file
     with open("attacked.txt", "w"):
         pass
 
@@ -165,12 +166,12 @@ def initializeTeam(nPeers, nInitialTrusted):
        runPeer(False, False, True)
 
 def churn():
-    global  nTrusted, nPeersTeam, nMalicious, trusted_peers, weibull_expelled, angry_peers_retired
+    global  slotsTP, nPeersTeam, slotsMP, trusted_peers, weibull_expelled, angry_peers_retired
 
     #while checkForRounds():
     while TOTAL_TIME > (time.time()-INIT_TIME):
 
-        #print("nMalicious: ",nMalicious, "nTrusted: ", nTrusted, "nPeersTeam: ", nPeersTeam)
+        #print("slotsMP: ",slotsMP, "slotsTP: ", slotsTP, "nPeersTeam: ", nPeersTeam)
         
         # Arrival of regular or malicious peers
         r = random.randint(1,100)
@@ -178,14 +179,15 @@ def churn():
             addRegularOrMaliciousPeer()
 
         # Arrival of trusted peers
-        r = random.randint(1,100)
-        if r <= P_IN and nTrusted>0:
+        #r = random.randint(1,100)
+        if r <= P_IN and slotsTP > 0:
+            cleanline()
             print Color.green, "In: <--", Color.none, "TP 127.0.0.1:{0}".format(port),
             with open("trusted.txt", "a") as fh:
                 fh.write('127.0.0.1:{0}\n'.format(port))
                 fh.close()
             trusted_peers.append('127.0.0.1:{0}'.format(port))
-            nTrusted-=1
+            slotsTP-=1
             nPeersTeam+=1
             runPeer(True, False, True)
 
@@ -195,10 +197,12 @@ def churn():
              
             if anyExpelled[0] == "MP":
                 print Color.red,
-                nMalicious+=1
+                slotsMP+=1
             else:
                 print Color.purple,
-                nTrusted+=1
+                slotsTP+=1
+
+            cleanline()
             print "Out: -->", anyExpelled[0], anyExpelled[1], Color.none
 	    nPeersTeam-=1
 
@@ -212,6 +216,7 @@ def churn():
             if (r <= P_OUT) and (p[0].poll() == None):
                 if p[2] != None and p[2] <= (time.time()-INIT_TIME):
                     if p[1] not in mp_expelled_by_tps and p[1] not in weibull_expelled and p[1] not in angry_peers_retired:
+                        cleanline()
                         print Color.red, "Out:-->", Color.none, p[3], p[1]
                         
                         p[0].terminate()
@@ -219,7 +224,7 @@ def churn():
                         weibull_expelled.append(p[1])
                         
                         if p[3] == "TP":
-                            nTrusted+=1
+                            slotsTP+=1
 
                         nPeersTeam-=1
 
@@ -228,6 +233,7 @@ def churn():
             if (r <= P_OUT) and (p[0].poll() == None):
                 if (p[1] in angry_peers):
                     if p[1] not in angry_peers_retired:
+                        cleanline()
                         print Color.red, "Out: -->", p[3], p[1], "(by WACLR_max)", "WACLR"  ,buffer_values[p[1]], "WACLR Max" , WACLR_max_var , "round", findLastRound() , Color.none
 
                         p[0].terminate()
@@ -278,16 +284,17 @@ def getLastBufferFor(inFile):
     return fullness
 
 def addRegularOrMaliciousPeer():
-    global nMalicious, nPeersTeam, nTrusted, currentRound, WACLR_max_var
+    global slotsMP, nPeersTeam, slotsTP, currentRound, WACLR_max_var
     if sizeTeam > nPeersTeam:
         r = random.randint(1,100)
         if r <= P_MP:
-            if nMalicious>0:
+            if slotsMP>0:
                 with open("malicious.txt", "a") as fh:
                     fh.write('127.0.0.1:{0}\n'.format(port))
                     fh.close()
+                cleanline()
                 print Color.green, "In: <--", Color.none, "MP 127.0.0.1:{0}".format(port),
-	        nMalicious-=1
+	        slotsMP-=1
 	        nPeersTeam+=1
                 runPeer(False, True, True)
 
@@ -296,21 +303,22 @@ def addRegularOrMaliciousPeer():
             #with open("regular.txt", "a") as fh:
             #    fh.write('127.0.0.1:{0}\n'.format(port))
             #    fh.close()
+            cleanline()
             print Color.green, "In: <--", Color.none, "WIP 127.0.0.1:{0}".format(port),
 	    nPeersTeam+=1
             runPeer(False, False, True)
 
     currentRound = findLastRound()
-    round = currentRound - LAST_ROUND_NUMBER
+    round = currentRound
     if round > 0:
         WACLR_max_var = WACLR_max + (1/(round/(round + 100.))) - 1
 
-    progress ="Round "+ str(round)+" Size "+str(sizeTeam)+"/"+str(nPeersTeam)
+    progress ="Round "+ str(round)+" Size "+str(nPeersTeam)+"/"+str(sizeTeam)+" TP slots "+str(slotsTP) + " MP slots "+str(slotsMP)
     sys.stdout.flush()
     print progress,
     print str(int(time.time()-INIT_TIME))+"/"+str(TOTAL_TIME),
     print '\r',
-
+'''
 def checkForTrusted():
     with open("{0}/splitter.log".format(experiment_path)) as fh:
         for line in fh:
@@ -324,9 +332,10 @@ def checkForTrusted():
                 if peer in trusted_peers:
                     tCnt += 1
 
-            return tCnt == nTrusted
+            return tCnt == slotsTP
 
     return True
+'''
 
 def checkForPeersExpelled():
     global mp_expelled_by_tps, tp_expelled_by_splitter
@@ -342,6 +351,7 @@ def checkForPeersExpelled():
                 elif result.group(2) not in mp_expelled_by_tps:
                     peer_type = "MP"
                     mp_expelled_by_tps.append(result.group(2))
+                
                 if peer_type != "WIP":   
                     for p in processes:
                         if (p[1] == result.group(2)) and (p[0].poll() == None):
@@ -363,8 +373,11 @@ def findLastRound():
              return int(result.group(1))
     return -1
 
+def cleanline():
+    print '\r', " "*60, '\r',
+
 def main(args):
-    global nPeers, nTrusted, nInitialTrusted, nMalicious, sizeTeam, nPeersTeam, INIT_TIME, TOTAL_TIME, WEIBULL_SHAPE, WEIBULL_TIME
+    global nPeers, slotsTP, nInitialTrusted, slotsMP, sizeTeam, nPeersTeam, INIT_TIME, TOTAL_TIME, WEIBULL_SHAPE, WEIBULL_TIME
 
     random.seed(SEED)
 
@@ -376,18 +389,18 @@ def main(args):
 
     ds = False
     nPeers = 2
-    nTrusted = nInitialTrusted = 1
-    nMalicious = 0
+    slotsTP = nInitialTrusted = 1
+    slotsMP = 0
     sizeTeam = nPeersTeam = 2
     for opt, arg in opts:
         if opt == "-n":
             nPeers = int(arg)
         elif opt == "-t":
-            nTrusted = int(arg)
+            slotsTP = int(arg)
         elif opt == "-i":
             nInitialTrusted = int(arg)
         elif opt == "-m":
-            nMalicious = int(arg)
+            slotsMP = int(arg)
         elif opt == "-z":
 	    sizeTeam = int(arg)
         elif opt == "-s":
@@ -401,9 +414,9 @@ def main(args):
 
     print 'running initial team with {0} peers ({1} trusted)'.format(nPeers, nInitialTrusted)
 
-    nPeers = nPeers - nInitialTrusted #- nMalicious # for more friendly user input
+    nPeers = nPeers - nInitialTrusted #- slotsMP # for more friendly user input
     nPeersTeam = nPeers + nInitialTrusted
-    nTrusted = nTrusted - nInitialTrusted
+    slotsTP = slotsTP - nInitialTrusted
     checkdir()
 
     INIT_TIME = time.time()
@@ -468,6 +481,8 @@ def main(args):
     os.rename("team.svg", experiment_path + "/team.svg")
     os.rename("buffer.svg", experiment_path + "/buffer.svg")
     os.rename("fullness.svg", experiment_path + "/fullness.svg")
+    if os.path.isfile("simulator.txt"):
+        os.rename("simulator.txt", experiment_path + "/simulator.txt")
 
     #raw_input("Press Enter to exit...")
 
