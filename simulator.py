@@ -100,13 +100,14 @@ def runPeer(trusted = False, malicious = False, ds = False):
 
 
     #Weibull distribution in this random number:
-    ttl = int(round(np.random.weibull(WEIBULL_SHAPE) * WEIBULL_TIME))
-    print " / ttl =", ttl,
-    ttl = ttl + int(time.time()-INIT_TIME)
-    print "("+str(ttl)+")"
-    alias = "127.0.0.1:"+str(port)
-
-    if (peertype == "MP"):
+    if (peertype == "WIP"):
+        ttl = int(round(np.random.weibull(WEIBULL_SHAPE) * WEIBULL_TIME))
+        print " / ttl =", ttl,
+        ttl = ttl + int(time.time()-INIT_TIME)
+        print "("+str(ttl)+")"
+        alias = "127.0.0.1:"+str(port)
+    else:
+        print ""
         ttl = None
     
     run(runStr, open("{0}/peer{1}.out".format(experiment_path,port), "w"), "127.0.0.1:"+str(port), ttl , peertype)
@@ -180,6 +181,7 @@ def churn():
         # Arrival of trusted peers
         #r = random.randint(1,100)
         if r <= P_IN and slotsTP > 0:
+            cleanline()
             print Color.green, "In: <--", Color.none, "TP 127.0.0.1:{0}".format(port),
             with open("trusted.txt", "a") as fh:
                 fh.write('127.0.0.1:{0}\n'.format(port))
@@ -199,6 +201,8 @@ def churn():
             else:
                 print Color.purple,
                 slotsTP+=1
+
+            cleanline()
             print "Out: -->", anyExpelled[0], anyExpelled[1], Color.none
 	    nPeersTeam-=1
 
@@ -212,6 +216,7 @@ def churn():
             if (r <= P_OUT) and (p[0].poll() == None):
                 if p[2] != None and p[2] <= (time.time()-INIT_TIME):
                     if p[1] not in mp_expelled_by_tps and p[1] not in weibull_expelled and p[1] not in angry_peers_retired:
+                        cleanline()
                         print Color.red, "Out:-->", Color.none, p[3], p[1]
                         
                         p[0].terminate()
@@ -228,6 +233,7 @@ def churn():
             if (r <= P_OUT) and (p[0].poll() == None):
                 if (p[1] in angry_peers):
                     if p[1] not in angry_peers_retired:
+                        cleanline()
                         print Color.red, "Out: -->", p[3], p[1], "(by WACLR_max)", "WACLR"  ,buffer_values[p[1]], "WACLR Max" , WACLR_max_var , "round", findLastRound() , Color.none
 
                         p[0].terminate()
@@ -286,6 +292,7 @@ def addRegularOrMaliciousPeer():
                 with open("malicious.txt", "a") as fh:
                     fh.write('127.0.0.1:{0}\n'.format(port))
                     fh.close()
+                cleanline()
                 print Color.green, "In: <--", Color.none, "MP 127.0.0.1:{0}".format(port),
 	        slotsMP-=1
 	        nPeersTeam+=1
@@ -296,6 +303,7 @@ def addRegularOrMaliciousPeer():
             #with open("regular.txt", "a") as fh:
             #    fh.write('127.0.0.1:{0}\n'.format(port))
             #    fh.close()
+            cleanline()
             print Color.green, "In: <--", Color.none, "WIP 127.0.0.1:{0}".format(port),
 	    nPeersTeam+=1
             runPeer(False, False, True)
@@ -364,6 +372,9 @@ def findLastRound():
         if result != None:
              return int(result.group(1))
     return -1
+
+def cleanline():
+    print '\r', " "*60, '\r',
 
 def main(args):
     global nPeers, slotsTP, nInitialTrusted, slotsMP, sizeTeam, nPeersTeam, INIT_TIME, TOTAL_TIME, WEIBULL_SHAPE, WEIBULL_TIME
