@@ -12,68 +12,67 @@ min_buffer_filling = 1
 
 experiment_path = ""
 
+logFiles = {}
+
 def usage():
     print ""
     return
 
-def calcAverageBufferCorrectnes(roundTime):
+def readAllFiles():
+    ret = {}
     fileList = glob.glob("{0}/peer*.log".format(experiment_path))
+
+    regex = re.compile("(\d*)\tbuffer\s(correctnes|filling|fullness)\s(\d*.\d*)")
+
+    for f in fileList:
+        ret[f] = []
+        with open(f) as fh:
+            for line in fh:
+                result = regex.match(line)
+                if result != None:
+                    ret[f].append((int(result.group(1)), result.group(2), float(result.group(3))))
+
+    return ret
+
+def calcAverageBufferCorrectnes(roundTime):
     correctnesSum = fillingSum = fullnessSum = 0.0
     NN = 0
-    for f in fileList:
-        info = calcAverageInFile(f, roundTime)
+
+    for f in logFiles:
+        info = calcAverageInFile(logFiles[f], roundTime)
         if (info[0] != None and info[1] != None and info[2] != None):
             correctnesSum += info[0]
             fillingSum += info[1]
             fullnessSum += info[2]
-            NN += 1       
+            NN += 1
 
     if NN == 0:
         return (None,None,None)
     return (correctnesSum / NN, fillingSum / NN, fullnessSum / NN)
-    
-def calcAverageInFile(inFile, roundTime):
-    regex_correctness = re.compile("(\d*)\tbuffer\scorrectnes\s(\d*.\d*)")
-    regex_filling = re.compile("(\d*)\tbuffer\sfilling\s(\d*.\d*)")
-    regex_fullness = re.compile("(\d*)\tbuffer\sfullness\s(\d*.\d*)")
 
+def calcAverageInFile(fileLines, roundTime):
     correctness = None
     filling = None
     fullness = None
-    
-    with open(inFile) as f:
-        for line in f:
-            
-            result_correctness = regex_correctness.match(line)
-            #print result_correctness
-            result_filling = regex_filling.match(line)
-            #print result_filling
-            result_fullness = regex_fullness.match(line)
-            #print result_fullness
-            
-            if result_correctness != None:
-                ts = int(result_correctness.group(1))
-                if ts == roundTime:
-                    correctness = float(result_correctness.group(2))
-                    
-            if result_filling != None:
-                ts = int(result_filling.group(1))
-                if ts == roundTime:
-                    filling = float(result_filling.group(2))
 
-            if result_fullness != None:
-                ts = int(result_fullness.group(1))
-                if ts == roundTime:
-                    fullness = float(result_fullness.group(2))
-            
-            if correctness != None and filling != None and fullness != None:
-                return (correctness, filling, fullness)
+    for line in fileLines:
+        if roundTime == line[0]:
+            if line[1] == 'correctnes':
+                correctness = line[2]
+            elif line[1] == 'filling':
+                filling = line[2]
+            elif line[1] == 'fullness':
+                fullness = line[2]
 
-    return (correctness, filling, fullness)    
-    
+        if correctness != None and filling != None and fullness != None:
+            return (correctness, filling, fullness)
+
+    return (correctness, filling, fullness)
+
 
 def main(args):
     global experiment_path
+    global logFiles
     inFile = ""
     nPeers = nMalicious = lastRound = 0
     try:
@@ -90,6 +89,7 @@ def main(args):
     regex = re.compile("(\d*)\t(\d*)\s(\d*)\s(.*)")
     startParse = False
     roundOffset = 0
+    logFiles = readAllFiles()
     print "round\t#WIPs\t#MPs\t#TPs\tteamsize\tcorrectness\tfilling\tfullness"
     with open("{0}/splitter.log".format(experiment_path)) as f:
         for line in f:
@@ -106,7 +106,7 @@ def main(args):
                     for line in fh:
                         if line[:-1] in peers:
                             trusted += 1
-                            
+
                 with open("malicious.txt", "r") as fh:
                     for line in fh:
                         if line[:-1] in peers:
