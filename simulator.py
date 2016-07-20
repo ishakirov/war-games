@@ -37,13 +37,13 @@ angry_peers_retired = []
 weibull_expelled = []
 buffer_values = {}
 
-P_IN = 50
-P_OUT = 50
-P_WIP = 50
+P_IN = 100
+P_OUT = 25
+P_WIP = 100
 P_MP = 100
 P_MPL = 100
 P_TPL = 100
-MPTR = 5
+MPTR = 2
 WACLR_max = 1.
 WACLR_max_var = 1.
 alpha = 0.25
@@ -80,7 +80,7 @@ def runStream():
 def runSplitter(ds = False):
     prefix = ""
     if ds: prefix = "ds"
-    run("./console/bin/splitter --strpeds --team_port 8001 --source_port 8080 --max_number_of_chunk_loss 32 --chunk_size 128 --buffer_size 1024 --strpeds_log " + experiment_path + "/splitter.log --p_mpl " + str(P_MPL) + " --p_tpl " + str(P_TPL), open("{0}/splitter.out".format(experiment_path), "w"))
+    run("./console/bin/splitter --strpeds --team_port 8001 --source_port 8080 --max_number_of_chunk_loss 32 --chunk_size 256 --buffer_size 1024 --strpeds_log " + experiment_path + "/splitter.log --p_mpl " + str(P_MPL) + " --p_tpl " + str(P_TPL), open("{0}/splitter.out".format(experiment_path), "w"))
     time.sleep(0.5)
 
 def runPeer(trusted = False, malicious = False, ds = False):
