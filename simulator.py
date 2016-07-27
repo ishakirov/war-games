@@ -197,10 +197,10 @@ def churn():
              
             if anyExpelled[0] == "MP":
                 print Color.red,
-                slotsMP+=1
+                #slotsMP+=1
             else:
                 print Color.purple,
-                slotsTP+=1
+                #slotsTP+=1
 
             cleanline()
             print "Out: -->", anyExpelled[0], anyExpelled[1], Color.none
@@ -224,7 +224,8 @@ def churn():
                         weibull_expelled.append(p[1])
                         
                         if p[3] == "TP":
-                            slotsTP+=1
+                            pass
+                            #slotsTP+=1
 
                         nPeersTeam-=1
 
