@@ -53,7 +53,7 @@ WEIBULL_TIME = 60
 def checkdir():
     global experiment_path
     experiment_path = datetime.datetime.now().strftime("%d%m%y%H%M") + "n" + str(nPeersTeam) + "t" +  str(slotsTP+nInitialTrusted) + "m" + str(slotsMP) + "z" + str(sizeTeam) + "d" + str(TOTAL_TIME)
-    
+
     if not os.path.exists(experiment_path):
         os.mkdir(experiment_path)
 
@@ -61,6 +61,7 @@ def usage():
     print "args error"
 
 def run(runStr, out = DEVNULL, alias = "", ttl = None, entityType = ""):
+    print(runStr)
     proc = subprocess.Popen(shlex.split(runStr), stdout=out, stderr=out)
     processes.append((proc, alias, ttl, entityType))
     return proc
@@ -109,7 +110,7 @@ def runPeer(trusted = False, malicious = False, ds = False):
     else:
         print ""
         ttl = None
-    
+
     run(runStr, open("{0}/peer{1}.out".format(experiment_path,port), "w"), "127.0.0.1:"+str(port), ttl , peertype)
     time.sleep(1)
 
@@ -172,7 +173,7 @@ def churn():
     while TOTAL_TIME > (time.time()-INIT_TIME):
 
         #print("slotsMP: ",slotsMP, "slotsTP: ", slotsTP, "nPeersTeam: ", nPeersTeam)
-        
+
         # Arrival of regular or malicious peers
         r = random.randint(1,100)
         if r <= P_IN:
@@ -194,7 +195,7 @@ def churn():
         # Malicious peers expelled by splitter (using the TP information)
         anyExpelled = checkForPeersExpelled()
         if anyExpelled[0] != None:
-             
+
             if anyExpelled[0] == "MP":
                 print Color.red,
                 #slotsMP+=1
@@ -207,7 +208,7 @@ def churn():
 	    nPeersTeam-=1
 
         checkForBufferTimes()
-            
+
         # Departure of peers
         for p in processes:
 
@@ -218,11 +219,11 @@ def churn():
                     if p[1] not in mp_expelled_by_tps and p[1] not in weibull_expelled and p[1] not in angry_peers_retired:
                         cleanline()
                         print Color.red, "Out:-->", Color.none, p[3], p[1]
-                        
+
                         p[0].terminate()
 
                         weibull_expelled.append(p[1])
-                        
+
                         if p[3] == "TP":
                             pass
                             #slotsTP+=1
@@ -352,12 +353,12 @@ def checkForPeersExpelled():
                 elif result.group(2) not in mp_expelled_by_tps:
                     peer_type = "MP"
                     mp_expelled_by_tps.append(result.group(2))
-                
-                if peer_type != "WIP":   
+
+                if peer_type != "WIP":
                     for p in processes:
                         if (p[1] == result.group(2)) and (p[0].poll() == None):
                             p[0].kill()
-                        
+
                     return (peer_type,result.group(2) +" ("+ result.group(3)+")")
     return (None, None)
 
@@ -421,7 +422,7 @@ def main(args):
     checkdir()
 
     INIT_TIME = time.time()
-    
+
     initializeTeam(nPeers, nInitialTrusted)
 
     print "Team Initialized"
@@ -439,7 +440,7 @@ def main(args):
 
     print "----- Simulating Churn -----"
 
-    churn() 
+    churn()
 
     print "******************* End of Simulation *******************"
     currentRound = findLastRound()
@@ -457,7 +458,7 @@ def main(args):
     print "alpha = " + str(alpha),
     print "WEIBULL_SHAPE = " + str(WEIBULL_SHAPE),
     print "WEIBULL_TIME = " + str(WEIBULL_TIME)
-  
+
     print "******************* Parsing Results  ********************"
     path = experiment_path + "/sample.dat"
     print "Target file: "+path
@@ -466,14 +467,14 @@ def main(args):
     process = run("./parse.py -d "+ experiment_path, open(path,"w"))
     process.wait()
     print "Done!"
-    
+
     print "******************* Plotting Results  *******************"
     run("gnuplot -e \"filename='"+path+"'\" plot_team.gp")
     run("gnuplot -e \"filename='"+path+"'\" plot_buffer.gp")
     run("gnuplot -e \"filename='"+path+"'\" plot_fullness.gp 2> /dev/null")
 
     time.sleep(1)
-    
+
     print "************** Moving Files to Results  *****************"
     os.rename("trusted.txt", experiment_path + "/trusted.txt")
     os.rename("attacked.txt", experiment_path + "/attacked.txt")

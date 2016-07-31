@@ -168,7 +168,10 @@ int main(int argc, const char *argv[]) {
        "probability trusted peer leave")
       (
        "TTL", boost::program_options::value<int>()->default_value(TTL),
-       "Time To Live of the multicast messages.");
+       "Time To Live of the multicast messages.")
+      (
+        "tms", "Enable TMS option for STrPe strategy"
+      );
   //~ }
 
   boost::program_options::variables_map vm;
@@ -247,7 +250,7 @@ int main(int argc, const char *argv[]) {
   }
 
   // Parameters if STRPEDS
-  
+
   if (HasParameter(vm, "strpeds_log", p2psp::Common::kSTRPE)) {
     std::shared_ptr<p2psp::SplitterSTRPEDS> splitter_strpeds =
       std::static_pointer_cast<p2psp::SplitterSTRPEDS>(splitter_ptr);
@@ -265,7 +268,12 @@ int main(int argc, const char *argv[]) {
       std::static_pointer_cast<p2psp::SplitterSTRPEDS>(splitter_ptr);
     splitter_strpeds->SetPTPL(vm["p_tpl"].as<int>());
   }
-  
+  if (HasParameter(vm, "tms", p2psp::Common::kSTRPE)) {
+    std::shared_ptr<p2psp::SplitterSTRPEDS> splitter_strpeds =
+      std::static_pointer_cast<p2psp::SplitterSTRPEDS>(splitter_ptr);
+    splitter_strpeds->setTmsEnable(true);
+  }
+
   splitter_ptr->Start();
 
   LOG("         | Received  | Sent      | Number       losses/ losses");
@@ -290,7 +298,7 @@ int main(int argc, const char *argv[]) {
   sigIntHandler.sa_flags = 0;
   sigaction(SIGINT, &sigIntHandler, NULL);
 
-  
+
   std::shared_ptr<p2psp::SplitterDBS> splitter_dbs;
   if (!is_IMS_only) { // GetPeerList is only in DBS and derivated classes
     splitter_dbs = std::static_pointer_cast<p2psp::SplitterDBS>(splitter_ptr);
@@ -327,7 +335,7 @@ int main(int argc, const char *argv[]) {
 
           LOG(splitter_dbs->GetLoss(*it) << "/" << chunks_sendto << " "
               << splitter_dbs->GetMaxNumberOfChunkLoss());
-	  
+
           if (splitter_dbs->GetMagicFlags() >= p2psp::Common::kACS) { // If is ACS
           // _SET_COLOR(_YELLOW);
             LOG(splitter_acs->GetPeriod(*it));
