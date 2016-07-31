@@ -61,7 +61,6 @@ def usage():
     print "args error"
 
 def run(runStr, out = DEVNULL, alias = "", ttl = None, entityType = ""):
-    print(runStr)
     proc = subprocess.Popen(shlex.split(runStr), stdout=out, stderr=out)
     processes.append((proc, alias, ttl, entityType))
     return proc
